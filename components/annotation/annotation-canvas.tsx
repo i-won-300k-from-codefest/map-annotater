@@ -42,6 +42,13 @@ type SelectedElement =
   | { type: "feature"; id: string }
   | null;
 
+const featureStyles: Record<AnnotatedFeature["type"], string> = {
+  shop: "border-emerald-500 bg-emerald-500/90 text-white",
+  restaurant: "border-amber-500 bg-amber-500/90 text-slate-900",
+  entrance: "border-sky-500 bg-sky-500/90 text-white",
+  restroom: "border-violet-500 bg-violet-500/90 text-white",
+};
+
 const pointToSegmentDistance = (
   point: { x: number; y: number },
   start: { x: number; y: number },
@@ -603,14 +610,16 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                   imageSize[1] > 0
                     ? (feature.position[1] / imageSize[1]) * 100
                     : 0;
+                const featureStyle = featureStyles[feature.type];
+
                 return (
                   <div
                     key={feature.id}
-                    className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border bg-primary/90 px-2 py-1 text-xs font-medium text-primary-foreground shadow transition-all ${
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border px-1 py-0.5 text-[9px] font-medium leading-none shadow transition-all ${
                       isSelected
-                        ? "ring-2 ring-primary/70 scale-110"
+                        ? "ring-2 ring-primary/60 scale-110"
                         : "hover:scale-105"
-                    } ${activeTool === "select" ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
+                    } ${featureStyle} ${activeTool === "select" ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
                     style={{
                       left: `${leftPercent}%`,
                       top: `${topPercent}%`,
