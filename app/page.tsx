@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { AnnotationSidebar } from "@/components/sidebar/annotation-sidebar";
 import { AnnotationToolbar } from "@/components/annotation/annotation-toolbar";
 import { AnnotationCanvas, type CursorInfo } from "@/components/annotation/annotation-canvas";
+import { ZoomControls, type ZoomState } from "@/components/annotation/zoom-controls";
 import { useAnnotationHistory } from "@/hooks/use-annotation-history";
 import type { Edge, Position, Vertex } from "@/lib/types";
 import {
@@ -32,6 +33,7 @@ export default function Home() {
   const [pendingEdgeStart, setPendingEdgeStart] = useState<string | null>(null);
   const [featureDraft, setFeatureDraft] = useState<FeatureDraft>(createEmptyDraft("shop"));
   const [cursor, setCursor] = useState<CursorInfo | null>(null);
+  const [zoom, setZoom] = useState<ZoomState>({ scale: 1, offsetX: 0, offsetY: 0 });
 
   const { state, commit, undo, redo, canRedo, canUndo } = useAnnotationHistory();
 
@@ -277,13 +279,18 @@ export default function Home() {
         canRedo={canRedo}
       />
       <section className="flex flex-1 min-h-0 flex-col gap-4 p-6 overflow-hidden">
-        <div className="shrink-0">
+        <div className="shrink-0 flex items-center justify-between gap-4">
           <AnnotationToolbar
             activeTool={activeTool}
             onToolChange={handleToolChange}
             cursor={cursor}
             canAnnotate={canAnnotate}
             pendingEdgeStart={pendingEdgeStart}
+          />
+          <ZoomControls
+            zoom={zoom}
+            onZoomChange={setZoom}
+            disabled={!canAnnotate}
           />
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto pb-4">
@@ -299,6 +306,8 @@ export default function Home() {
             onConnectNodes={handleConnectNodes}
             onPlaceFeature={handlePlaceFeature}
             onCursorChange={setCursor}
+            zoom={zoom}
+            onZoomChange={setZoom}
           />
         </div>
       </section>

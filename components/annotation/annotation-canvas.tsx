@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Edge, Position, Vertex } from "@/lib/types";
 import type { AnnotatedFeature, AnnotationTool } from "@/lib/annotation";
+import type { ZoomState } from "./zoom-controls";
 
 /**
  * Cursor position expressed as raw normalized numbers (0–1 range, not percentages).
@@ -25,6 +26,8 @@ interface AnnotationCanvasProps {
   onConnectNodes: (sourceId: string, targetId: string) => void;
   onPlaceFeature: (position: Position) => void;
   onCursorChange: (cursor: CursorInfo | null) => void;
+  zoom: ZoomState;
+  onZoomChange: (zoom: ZoomState) => void;
 }
 
 export function AnnotationCanvas(props: AnnotationCanvasProps) {
@@ -40,10 +43,16 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
     onConnectNodes,
     onPlaceFeature,
     onCursorChange,
+    zoom,
+    onZoomChange,
   } = props;
 
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [spacePressed, setSpacePressed] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -53,6 +62,28 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
     });
     observer.observe(containerRef.current);
     return () => observer.disconnect();
+  }, []);
+
+  // Keyboard event listeners for space key (for panning)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space" && !e.repeat) {
+        setSpacePressed(true);
+        e.preventDefault();
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        setSpacePressed(false);
+        setIsPanning(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
   }, []);
 
   const projectPosition = useCallback(
@@ -67,8 +98,15 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
     (event: React.MouseEvent) => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return null;
-      const x = (event.clientX - rect.left) / rect.width;
-      const y = (event.clientY - rect.top) / rect.height;
+
+      // Get raw client coordinates relative to container
+      const clientX = event.clientX - rect.left;
+      const clientY = event.clientY - rect.top;
+
+      // Account for zoom and pan
+      const x = (clientX - zoom.offsetX) / (rect.width * zoom.scale);
+      const y = (clientY - zoom.offsetY) / (rect.height * zoom.scale);
+
       if (Number.isNaN(x) || Number.isNaN(y)) return null;
       if (x < 0 || x > 1 || y < 0 || y > 1) return null;
       return {
@@ -76,7 +114,7 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
         absolute: [x * rect.width, y * rect.height] as Position,
       } satisfies CursorInfo;
     },
-    [],
+    [zoom.offsetX, zoom.offsetY, zoom.scale],
   );
 
   const findNodeHit = useCallback(
@@ -99,14 +137,81 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
     [dimensions.height, dimensions.width, nodes, projectPosition],
   );
 
+  const handleWheel = useCallback(
+    (event: React.WheelEvent) => {
+      if (!containerRef.current) return;
+
+      event.preventDefault();
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+
+      // Zoom factor
+      const delta = -event.deltaY;
+      const zoomFactor = delta > 0 ? 1.1 : 0.9;
+      const newScale = Math.max(0.1, Math.min(10, zoom.scale * zoomFactor));
+
+      // Calculate new offsets to zoom towards mouse position
+      const newOffsetX = mouseX - (mouseX - zoom.offsetX) * (newScale / zoom.scale);
+      const newOffsetY = mouseY - (mouseY - zoom.offsetY) * (newScale / zoom.scale);
+
+      onZoomChange({
+        scale: newScale,
+        offsetX: newOffsetX,
+        offsetY: newOffsetY,
+      });
+    },
+    [zoom, onZoomChange],
+  );
+
+  const handleMouseDown = useCallback(
+    (event: React.MouseEvent) => {
+      if (spacePressed || activeTool === "select") {
+        setIsPanning(true);
+        setPanStart({ x: event.clientX - zoom.offsetX, y: event.clientY - zoom.offsetY });
+        event.preventDefault();
+      }
+    },
+    [spacePressed, activeTool, zoom.offsetX, zoom.offsetY],
+  );
+
+  const handleMouseMove = useCallback(
+    (event: React.MouseEvent) => {
+      if (isPanning) {
+        const newOffsetX = event.clientX - panStart.x;
+        const newOffsetY = event.clientY - panStart.y;
+        onZoomChange({
+          ...zoom,
+          offsetX: newOffsetX,
+          offsetY: newOffsetY,
+        });
+      }
+    },
+    [isPanning, panStart, zoom, onZoomChange],
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
   const handlePointerMove = (event: React.MouseEvent) => {
-    const info = getRelativeFromEvent(event);
-    onCursorChange(info);
+    handleMouseMove(event);
+    if (!isPanning) {
+      const info = getRelativeFromEvent(event);
+      onCursorChange(info);
+    }
   };
 
-  const handlePointerLeave = () => onCursorChange(null);
+  const handlePointerLeave = () => {
+    onCursorChange(null);
+    setIsPanning(false);
+  };
 
   const handleClick = (event: React.MouseEvent) => {
+    // Don't handle clicks when panning or space is pressed
+    if (isPanning || spacePressed) return;
+
     if (!imageSrc) return;
     const info = getRelativeFromEvent(event);
     if (!info) return;
@@ -163,6 +268,8 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
     });
   }, [dimensions.height, dimensions.width, edges, nodes, projectPosition]);
 
+  const cursorStyle = isPanning || spacePressed ? "grabbing" : "default";
+
   return (
     <div className="relative flex-1">
       <div
@@ -170,63 +277,76 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
         className="relative h-full min-h-[420px] w-full overflow-hidden rounded-xl border bg-muted"
         onMouseMove={handlePointerMove}
         onMouseLeave={handlePointerLeave}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
         onClick={handleClick}
+        onWheel={handleWheel}
+        style={{ cursor: cursorStyle }}
       >
-        {imageSrc ? (
-          <Image
-            src={imageSrc}
-            alt="Area base"
-            fill
-            unoptimized
-            priority={false}
-            draggable={false}
-            className="pointer-events-none select-none object-contain"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-            Upload an image to start annotating.
-          </div>
-        )}
+        <div
+          ref={contentRef}
+          className="absolute inset-0 origin-top-left"
+          style={{
+            transform: `translate(${zoom.offsetX}px, ${zoom.offsetY}px) scale(${zoom.scale})`,
+            transition: isPanning ? "none" : "transform 0.1s ease-out",
+          }}
+        >
+          {imageSrc ? (
+            <Image
+              src={imageSrc}
+              alt="Area base"
+              fill
+              unoptimized
+              priority={false}
+              draggable={false}
+              className="pointer-events-none select-none object-contain"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              Upload an image to start annotating.
+            </div>
+          )}
 
-        {imageSrc ? (
-          <>
-            <svg className="pointer-events-none absolute inset-0 h-full w-full">
-              {renderEdges}
-            </svg>
-            {nodes.map((node) => {
-              const isActive = pendingEdgeStart === node.id;
-              return (
-                <button
-                  key={node.id}
-                  type="button"
-                  className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${isActive ? "border-primary bg-primary/80" : "border-background bg-card"}`}
+          {imageSrc ? (
+            <>
+              <svg className="pointer-events-none absolute inset-0 h-full w-full">
+                {renderEdges}
+              </svg>
+              {nodes.map((node) => {
+                const isActive = pendingEdgeStart === node.id;
+                return (
+                  <button
+                    key={node.id}
+                    type="button"
+                    className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${isActive ? "border-primary bg-primary/80" : "border-background bg-card"}`}
+                    style={{
+                      left: `${node.position[0] * 100}%`,
+                      top: `${node.position[1] * 100}%`,
+                      width: isActive ? 14 : 12,
+                      height: isActive ? 14 : 12,
+                    }}
+                  >
+                    <span className="sr-only">{node.id}</span>
+                  </button>
+                );
+              })}
+              {features.map((feature) => (
+                <div
+                  key={feature.id}
+                  className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border bg-primary/90 px-2 py-1 text-xs font-medium text-primary-foreground shadow"
                   style={{
-                    left: `${node.position[0] * 100}%`,
-                    top: `${node.position[1] * 100}%`,
-                    width: isActive ? 14 : 12,
-                    height: isActive ? 14 : 12,
+                    left: `${feature.position[0] * 100}%`,
+                    top: `${feature.position[1] * 100}%`,
                   }}
                 >
-                  <span className="sr-only">{node.id}</span>
-                </button>
-              );
-            })}
-            {features.map((feature) => (
-              <div
-                key={feature.id}
-                className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border bg-primary/90 px-2 py-1 text-xs font-medium text-primary-foreground shadow"
-                style={{
-                  left: `${feature.position[0] * 100}%`,
-                  top: `${feature.position[1] * 100}%`,
-                }}
-              >
-                {feature.type === "entrance"
-                  ? feature.label || "Entrance"
-                  : feature.name}
-              </div>
-            ))}
-          </>
-        ) : null}
+                  {feature.type === "entrance"
+                    ? feature.label || "Entrance"
+                    : feature.name}
+                </div>
+              ))}
+            </>
+          ) : null}
+        </div>
       </div>
     </div>
   );
