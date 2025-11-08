@@ -57,6 +57,17 @@ export interface Edge extends PrimitiveBase {
 export type Primitive = Vertex | Edge;
 
 /**
+ * An image associated with a feature.
+ *
+ * @property url - URL/link to the image
+ * @property caption - Optional descriptive text for the image
+ */
+export interface FeatureImage {
+  url: string;
+  caption?: string;
+}
+
+/**
  * Base interface for feature elements on the map.
  *
  * Features represent points of interest or interactive elements
@@ -65,6 +76,7 @@ export type Primitive = Vertex | Edge;
 interface FeatureBase {
   type: "shop" | "restaurant" | "entrance";
   position: Position;
+  images?: FeatureImage[];
 }
 
 /**

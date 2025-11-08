@@ -161,12 +161,14 @@ export default function Home() {
               label: featureDraft.label.trim(),
               target: featureDraft.target.trim(),
               position,
+              images: featureDraft.images,
             }
           : {
               id: generateId("f"),
               type: featureDraft.type,
               name: featureDraft.name.trim(),
               position,
+              images: featureDraft.images,
             };
 
       commit((prev) => ({

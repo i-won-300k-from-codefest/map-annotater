@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { CircleDot, GitBranch, MapPin, Pencil, Redo2, Trash2, Undo2 } from "lucide-react";
+import { CircleDot, GitBranch, Image as ImageIcon, MapPin, Pencil, Redo2, Trash2, Undo2 } from "lucide-react";
 import type { Edge, Vertex } from "@/lib/types";
 import type { AnnotatedFeature } from "@/lib/annotation";
+import { ImageManager } from "./image-manager";
 
 interface AnnotationListProps {
   nodes: Vertex[];
@@ -148,32 +149,46 @@ export function AnnotationList(props: AnnotationListProps) {
                 </div>
                 {section.items.length ? (
                   <div className="space-y-2">
-                    {section.items.map((item) => (
-                      <div
-                        key={(item as { id?: string }).id ?? JSON.stringify(item)}
-                        className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
-                      >
-                        <div className="space-y-1">
-                          <p className="font-medium">
-                            {"id" in item && item.id ? item.id : section.label.slice(0, -1)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{section.meta(item as never)}</p>
+                    {section.items.map((item) => {
+                      const imageCount = section.type === "feature" && "images" in item
+                        ? (item as AnnotatedFeature).images?.length ?? 0
+                        : 0;
+
+                      return (
+                        <div
+                          key={(item as { id?: string }).id ?? JSON.stringify(item)}
+                          className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
+                        >
+                          <div className="space-y-1 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">
+                                {"id" in item && item.id ? item.id : section.label.slice(0, -1)}
+                              </p>
+                              {imageCount > 0 && (
+                                <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                                  <ImageIcon className="h-3 w-3" />
+                                  {imageCount}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{section.meta(item as never)}</p>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" onClick={() => section.onEdit(item as never)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => section.onDelete(item as never)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => section.onEdit(item as never)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => section.onDelete(item as never)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground">{section.emptyLabel}</p>
@@ -415,6 +430,20 @@ export function AnnotationList(props: AnnotationListProps) {
                   />
                 </div>
               )}
+              <Separator />
+              <ImageManager
+                images={editing.value.images || []}
+                onChange={(images) =>
+                  setEditing((current) =>
+                    current && current.type === "feature"
+                      ? {
+                          ...current,
+                          value: { ...current.value, images },
+                        }
+                      : current,
+                  )
+                }
+              />
             </div>
           ) : null}
           <DialogFooter>

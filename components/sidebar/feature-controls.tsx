@@ -7,8 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import type { AnnotationTool, FeatureDraft } from "@/lib/annotation";
 import { createEmptyDraft } from "@/lib/annotation";
+import { ImageManager } from "./image-manager";
 
 interface FeatureControlsProps {
   activeTool: AnnotationTool;
@@ -118,6 +120,16 @@ export function FeatureControls({
             />
           </div>
         )}
+        <Separator />
+        <ImageManager
+          images={draft.images}
+          onChange={(images) =>
+            onDraftChange({
+              ...draft,
+              images,
+            })
+          }
+        />
         <Button
           size="sm"
           disabled={!isReady}

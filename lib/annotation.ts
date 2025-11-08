@@ -1,4 +1,4 @@
-import type { Feature } from "@/lib/types";
+import type { Feature, FeatureImage } from "@/lib/types";
 
 export type AnnotationMode = "topology" | "features";
 
@@ -23,11 +23,13 @@ export type FeatureDraft =
   | {
       type: Extract<Feature["type"], "shop" | "restaurant">;
       name: string;
+      images: FeatureImage[];
     }
   | {
       type: "entrance";
       label: string;
       target: string;
+      images: FeatureImage[];
     };
 
 export const createEmptyDraft = (type: FeatureDraft["type"]): FeatureDraft => {
@@ -36,12 +38,14 @@ export const createEmptyDraft = (type: FeatureDraft["type"]): FeatureDraft => {
       type,
       label: "",
       target: "",
+      images: [],
     };
   }
 
   return {
     type,
     name: "",
+    images: [],
   };
 };
 
