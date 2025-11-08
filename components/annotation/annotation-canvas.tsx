@@ -67,6 +67,7 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
   const [selectedElement, setSelectedElement] = useState<SelectedElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartPos, setDragStartPos] = useState<Position | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -455,6 +456,8 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                 const isSelected =
                   selectedElement?.type === "node" &&
                   selectedElement.id === node.id;
+                const isHovered = hoveredNode === node.id;
+                const shouldEnlargeOnHover = isHovered && activeTool === "add-edge";
                 // Convert pixel position to percentage for CSS
                 const leftPercent =
                   imageSize[0] > 0
@@ -464,10 +467,16 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                   imageSize[1] > 0
                     ? (node.position[1] / imageSize[1]) * 100
                     : 0;
+
+                // Size logic: smaller by default, larger when selected/active or when hovered in edge mode
+                const nodeSize = isSelected ? 16 : isActive ? 14 : shouldEnlargeOnHover ? 12 : 8;
+
                 return (
                   <button
                     key={node.id}
                     type="button"
+                    onMouseEnter={() => setHoveredNode(node.id)}
+                    onMouseLeave={() => setHoveredNode(null)}
                     className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-all ${
                       isSelected
                         ? "border-primary bg-primary ring-2 ring-primary/50"
@@ -478,8 +487,8 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                     style={{
                       left: `${leftPercent}%`,
                       top: `${topPercent}%`,
-                      width: isSelected ? 16 : isActive ? 14 : 12,
-                      height: isSelected ? 16 : isActive ? 14 : 12,
+                      width: nodeSize,
+                      height: nodeSize,
                     }}
                   >
                     <span className="sr-only">{node.id}</span>
