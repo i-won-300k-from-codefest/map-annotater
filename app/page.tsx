@@ -1,65 +1,303 @@
-import Image from "next/image";
+"use client";
+
+import { useCallback, useState } from "react";
+import { AnnotationSidebar } from "@/components/sidebar/annotation-sidebar";
+import { AnnotationToolbar } from "@/components/annotation/annotation-toolbar";
+import { AnnotationCanvas, type CursorInfo } from "@/components/annotation/annotation-canvas";
+import { useAnnotationHistory } from "@/hooks/use-annotation-history";
+import type { Edge, Position, Vertex } from "@/lib/types";
+import {
+  createEmptyDraft,
+  isFeatureTool,
+  type AnnotatedFeature,
+  type AnnotationMode,
+  type AnnotationTool,
+  type FeatureDraft,
+} from "@/lib/annotation";
+
+const generateId = (prefix: string) => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
+  }
+  return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
+};
+
+const featureToolFromType = (type: FeatureDraft["type"]): AnnotationTool =>
+  type === "entrance" ? "feature-entrance" : type === "shop" ? "feature-shop" : "feature-restaurant";
 
 export default function Home() {
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [mode, setMode] = useState<AnnotationMode>("topology");
+  const [activeTool, setActiveTool] = useState<AnnotationTool>("select");
+  const [pendingEdgeStart, setPendingEdgeStart] = useState<string | null>(null);
+  const [featureDraft, setFeatureDraft] = useState<FeatureDraft>(createEmptyDraft("shop"));
+  const [cursor, setCursor] = useState<CursorInfo | null>(null);
+
+  const { state, commit, undo, redo, canRedo, canUndo } = useAnnotationHistory();
+
+  const nodes = state.nodes;
+  const edges = state.edges;
+  const features = state.features;
+
+  const handleToolChange = useCallback((tool: AnnotationTool) => {
+    if (tool === "add-node" || tool === "add-edge") {
+      setMode("topology");
+    } else if (isFeatureTool(tool)) {
+      setMode("features");
+    }
+    if (tool !== "add-edge") {
+      setPendingEdgeStart(null);
+    }
+    setActiveTool(tool);
+  }, []);
+
+  const handleModeChange = useCallback(
+    (nextMode: AnnotationMode) => {
+      setMode(nextMode);
+      setActiveTool((current) => {
+        if (nextMode === "topology" && isFeatureTool(current)) {
+          return "select";
+        }
+        if (
+          nextMode === "features" &&
+          (current === "add-node" || current === "add-edge")
+        ) {
+          return featureToolFromType(featureDraft.type);
+        }
+        return current;
+      });
+      if (nextMode !== "topology") {
+        setPendingEdgeStart(null);
+      }
+    },
+    [featureDraft.type],
+  );
+
+  const handleImageUpload = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageSrc(typeof reader.result === "string" ? reader.result : null);
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const handleAddNode = useCallback(
+    (position: Position) => {
+      commit((prev) => ({
+        ...prev,
+        nodes: [
+          ...prev.nodes,
+          {
+            type: "node",
+            id: generateId("v"),
+            position,
+          },
+        ],
+      }));
+    },
+    [commit],
+  );
+
+  const handleConnectNodes = useCallback(
+    (sourceId: string, targetId: string) => {
+      if (sourceId === targetId) return;
+      commit((prev) => {
+        const duplicate = prev.edges.some(
+          (edge) =>
+            (edge.source === sourceId && edge.target === targetId) ||
+            (edge.source === targetId && edge.target === sourceId),
+        );
+        if (duplicate) {
+          return prev;
+        }
+        return {
+          ...prev,
+          edges: [
+            ...prev.edges,
+            {
+              type: "edge",
+              id: generateId("e"),
+              source: sourceId,
+              target: targetId,
+            },
+          ],
+        };
+      });
+    },
+    [commit],
+  );
+
+  const handlePlaceFeature = useCallback(
+    (position: Position) => {
+      if (featureDraft.type === "entrance") {
+        if (!featureDraft.label.trim()) return;
+      } else if (!featureDraft.name.trim()) {
+        return;
+      }
+
+      const base: AnnotatedFeature =
+        featureDraft.type === "entrance"
+          ? {
+              id: generateId("f"),
+              type: "entrance",
+              label: featureDraft.label.trim(),
+              target: featureDraft.target.trim(),
+              position,
+            }
+          : {
+              id: generateId("f"),
+              type: featureDraft.type,
+              name: featureDraft.name.trim(),
+              position,
+            };
+
+      commit((prev) => ({
+        ...prev,
+        features: [...prev.features, base],
+      }));
+    },
+    [commit, featureDraft],
+  );
+
+  const handleDeleteNode = useCallback(
+    (id: string) => {
+      commit((prev) => ({
+        ...prev,
+        nodes: prev.nodes.filter((node) => node.id !== id),
+        edges: prev.edges.filter((edge) => edge.source !== id && edge.target !== id),
+      }));
+      if (pendingEdgeStart === id) {
+        setPendingEdgeStart(null);
+      }
+    },
+    [commit, pendingEdgeStart],
+  );
+
+  const handleDeleteEdge = useCallback(
+    (id: string) => {
+      commit((prev) => ({
+        ...prev,
+        edges: prev.edges.filter((edge) => edge.id !== id),
+      }));
+    },
+    [commit],
+  );
+
+  const handleDeleteFeature = useCallback(
+    (id: string) => {
+      commit((prev) => ({
+        ...prev,
+        features: prev.features.filter((feature) => feature.id !== id),
+      }));
+    },
+    [commit],
+  );
+
+  const handleUpdateNode = useCallback(
+    (originalId: string, next: Vertex) => {
+      const nextId = next.id.trim() || originalId;
+      commit((prev) => ({
+        ...prev,
+        nodes: prev.nodes.map((node) =>
+          node.id === originalId ? { ...next, id: nextId, type: "node" } : node,
+        ),
+        edges: prev.edges.map((edge) => ({
+          ...edge,
+          source: edge.source === originalId ? nextId : edge.source,
+          target: edge.target === originalId ? nextId : edge.target,
+        })),
+      }));
+    },
+    [commit],
+  );
+
+  const handleUpdateEdge = useCallback(
+    (originalId: string, next: Edge) => {
+      commit((prev) => ({
+        ...prev,
+        edges: prev.edges.map((edge) =>
+          edge.id === originalId
+            ? {
+                ...next,
+                id: next.id.trim() || originalId,
+                type: "edge",
+              }
+            : edge,
+        ),
+      }));
+    },
+    [commit],
+  );
+
+  const handleUpdateFeature = useCallback(
+    (originalId: string, next: AnnotatedFeature) => {
+      commit((prev) => ({
+        ...prev,
+        features: prev.features.map((feature) =>
+          feature.id === originalId
+            ? {
+                ...feature,
+                ...next,
+                id: originalId,
+              }
+            : feature,
+        ),
+      }));
+    },
+    [commit],
+  );
+
+  const canAnnotate = Boolean(imageSrc);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="flex min-h-screen bg-background text-foreground">
+      <AnnotationSidebar
+        imageSrc={imageSrc}
+        onUploadImage={handleImageUpload}
+        onClearImage={() => setImageSrc(null)}
+        mode={mode}
+        onModeChange={handleModeChange}
+        activeTool={activeTool}
+        onToolChange={handleToolChange}
+        pendingEdgeStart={pendingEdgeStart}
+        featureDraft={featureDraft}
+        onFeatureDraftChange={setFeatureDraft}
+        nodes={nodes}
+        edges={edges}
+        features={features}
+        onUpdateNode={handleUpdateNode}
+        onDeleteNode={handleDeleteNode}
+        onUpdateEdge={handleUpdateEdge}
+        onDeleteEdge={handleDeleteEdge}
+        onUpdateFeature={handleUpdateFeature}
+        onDeleteFeature={handleDeleteFeature}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+      />
+      <section className="flex flex-1 flex-col gap-4 p-6">
+        <AnnotationToolbar
+          activeTool={activeTool}
+          onToolChange={handleToolChange}
+          cursor={cursor}
+          canAnnotate={canAnnotate}
+          pendingEdgeStart={pendingEdgeStart}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        <AnnotationCanvas
+          imageSrc={imageSrc}
+          nodes={nodes}
+          edges={edges}
+          features={features}
+          activeTool={activeTool}
+          pendingEdgeStart={pendingEdgeStart}
+          onPendingEdgeChange={setPendingEdgeStart}
+          onAddNode={handleAddNode}
+          onConnectNodes={handleConnectNodes}
+          onPlaceFeature={handlePlaceFeature}
+          onCursorChange={setCursor}
+        />
+      </section>
+    </main>
   );
 }
