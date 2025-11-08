@@ -154,7 +154,7 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
           y1={y1}
           x2={x2}
           y2={y2}
-          stroke="hsl(var(--primary))"
+          stroke="var(--primary)"
           strokeWidth={2}
           strokeLinecap="round"
           opacity={0.85}
