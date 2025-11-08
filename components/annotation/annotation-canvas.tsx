@@ -70,8 +70,7 @@ const pointToSegmentDistance = (
   }
 
   const t =
-    ((point.x - start.x) * dx + (point.y - start.y) * dy) /
-    (dx * dx + dy * dy);
+    ((point.x - start.x) * dx + (point.y - start.y) * dy) / (dx * dx + dy * dy);
   const clampedT = Math.max(0, Math.min(1, t));
   const closestX = start.x + clampedT * dx;
   const closestY = start.y + clampedT * dy;
@@ -123,7 +122,11 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
   const [selectedElement, setSelectedElement] = useState<SelectedElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartPos, setDragStartPos] = useState<Position | null>(null);
-  const closedAreas = useMemo<ClosedLoop[]>(() => findClosedLoops(nodes, edges), [nodes, edges]);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const closedAreas = useMemo<ClosedLoop[]>(
+    () => findClosedLoops(nodes, edges),
+    [nodes, edges],
+  );
 
   const deleteSelectedElement = useCallback(() => {
     if (!selectedElement) return;
@@ -453,9 +456,21 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
 
   const handlePointerMove = (event: React.MouseEvent) => {
     handleMouseMove(event);
+    const shouldTrackHover =
+      activeTool === "add-edge" || activeTool === "select";
+
     if (!isPanning) {
       const info = getRelativeFromEvent(event);
       onCursorChange(info);
+
+      if (!isDragging && shouldTrackHover && info) {
+        const hitNode = findNodeHit(info.relative);
+        setHoveredNodeId((prev) => (prev === hitNode ? prev : hitNode));
+      } else if (hoveredNodeId) {
+        setHoveredNodeId(null);
+      }
+    } else if (hoveredNodeId) {
+      setHoveredNodeId(null);
     }
   };
 
@@ -464,6 +479,7 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
     setIsPanning(false);
     setIsDragging(false);
     setDragStartPos(null);
+    setHoveredNodeId(null);
   };
 
   const handleClick = (event: React.MouseEvent) => {
@@ -526,7 +542,14 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
         />
       );
     });
-  }, [dimensions.height, dimensions.width, edges, nodes, projectPosition, selectedElement]);
+  }, [
+    dimensions.height,
+    dimensions.width,
+    edges,
+    nodes,
+    projectPosition,
+    selectedElement,
+  ]);
 
   const renderAreas = useMemo(() => {
     if (!dimensions.width || !dimensions.height) return null;
@@ -540,7 +563,9 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
         if (boundaryPoints.length < 3) return null;
 
         const holeRings = area.holes
-          .map((hole) => hole.points.map((position) => projectPosition(position)))
+          .map((hole) =>
+            hole.points.map((position) => projectPosition(position)),
+          )
           .filter((ring) => ring.length >= 3);
 
         const pathData = pathFromRings([boundaryPoints, ...holeRings]);
@@ -618,6 +643,9 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                 const isSelected =
                   selectedElement?.type === "node" &&
                   selectedElement.id === node.id;
+                const isHoverCandidate =
+                  hoveredNodeId === node.id &&
+                  (activeTool === "add-edge" || activeTool === "select");
                 // Convert pixel position to percentage for CSS
                 const leftPercent =
                   imageSize[0] > 0
@@ -640,7 +668,9 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                         ? "border-primary bg-primary ring-2 ring-primary/50"
                         : isActive
                           ? "border-primary bg-primary/80"
-                          : "border-muted-foreground/40 bg-muted-foreground/60 hover:border-primary/50"
+                          : isHoverCandidate
+                            ? "border-primary/70 bg-primary/30 ring-1 ring-primary/40"
+                            : "border-muted-foreground/40 bg-muted-foreground/60 hover:border-primary/50"
                     } ${activeTool === "select" ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
                     style={{
                       left: `${leftPercent}%`,
