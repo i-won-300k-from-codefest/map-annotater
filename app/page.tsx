@@ -215,6 +215,18 @@ export default function Home() {
     [commit],
   );
 
+  const handleUpdateNodePosition = useCallback(
+    (nodeId: string, position: Position) => {
+      commit((prev) => ({
+        ...prev,
+        nodes: prev.nodes.map((node) =>
+          node.id === nodeId ? { ...node, position } : node,
+        ),
+      }));
+    },
+    [commit],
+  );
+
   const handleUpdateNode = useCallback(
     (originalId: string, next: Vertex) => {
       const nextId = next.id.trim() || originalId;
@@ -245,6 +257,18 @@ export default function Home() {
                 type: "edge",
               }
             : edge,
+        ),
+      }));
+    },
+    [commit],
+  );
+
+  const handleUpdateFeaturePosition = useCallback(
+    (featureId: string, position: Position) => {
+      commit((prev) => ({
+        ...prev,
+        features: prev.features.map((feature) =>
+          feature.id === featureId ? { ...feature, position } : feature,
         ),
       }));
     },
@@ -420,6 +444,8 @@ export default function Home() {
             onAddNode={handleAddNode}
             onConnectNodes={handleConnectNodes}
             onPlaceFeature={handlePlaceFeature}
+            onUpdateNode={handleUpdateNodePosition}
+            onUpdateFeature={handleUpdateFeaturePosition}
             onCursorChange={setCursor}
             zoom={zoom}
             onZoomChange={setZoom}

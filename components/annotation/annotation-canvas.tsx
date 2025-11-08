@@ -26,10 +26,17 @@ interface AnnotationCanvasProps {
   onAddNode: (position: Position) => void;
   onConnectNodes: (sourceId: string, targetId: string) => void;
   onPlaceFeature: (position: Position) => void;
+  onUpdateNode: (nodeId: string, position: Position) => void;
+  onUpdateFeature: (featureId: string, position: Position) => void;
   onCursorChange: (cursor: CursorInfo | null) => void;
   zoom: ZoomState;
   onZoomChange: (zoom: ZoomState) => void;
 }
+
+type SelectedElement =
+  | { type: "node"; id: string }
+  | { type: "feature"; id: string }
+  | null;
 
 export function AnnotationCanvas(props: AnnotationCanvasProps) {
   const {
@@ -44,6 +51,8 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
     onAddNode,
     onConnectNodes,
     onPlaceFeature,
+    onUpdateNode,
+    onUpdateFeature,
     onCursorChange,
     zoom,
     onZoomChange,
@@ -55,6 +64,9 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [spacePressed, setSpacePressed] = useState(false);
+  const [selectedElement, setSelectedElement] = useState<SelectedElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartPos, setDragStartPos] = useState<Position | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -163,6 +175,46 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
     [dimensions.height, dimensions.width, nodes, projectPosition],
   );
 
+  const findFeatureHit = useCallback(
+    (position: Position) => {
+      if (!dimensions.width || !dimensions.height) return null;
+      const click = projectPosition(position);
+      const threshold = 25;
+      let hit: string | null = null;
+      let shortest = Number.POSITIVE_INFINITY;
+      features.forEach((feature) => {
+        const featurePoint = projectPosition(feature.position);
+        const distance = Math.hypot(
+          featurePoint.x - click.x,
+          featurePoint.y - click.y,
+        );
+        if (distance < threshold && distance < shortest) {
+          hit = feature.id;
+          shortest = distance;
+        }
+      });
+      return hit;
+    },
+    [dimensions.height, dimensions.width, features, projectPosition],
+  );
+
+  const findElementHit = useCallback(
+    (position: Position): SelectedElement => {
+      // Check features first (they're rendered on top)
+      const featureId = findFeatureHit(position);
+      if (featureId) {
+        return { type: "feature", id: featureId };
+      }
+      // Then check nodes
+      const nodeId = findNodeHit(position);
+      if (nodeId) {
+        return { type: "node", id: nodeId };
+      }
+      return null;
+    },
+    [findFeatureHit, findNodeHit],
+  );
+
   const handleWheel = useCallback(
     (event: React.WheelEvent) => {
       if (!containerRef.current) return;
@@ -195,6 +247,24 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent) => {
+      const info = getRelativeFromEvent(event);
+
+      // In select mode, check if clicking on an element
+      if (activeTool === "select" && info) {
+        const hitElement = findElementHit(info.relative);
+        if (hitElement) {
+          // Start dragging the element
+          setSelectedElement(hitElement);
+          setIsDragging(true);
+          setDragStartPos(info.relative);
+          event.preventDefault();
+          return;
+        }
+        // Clicking on empty space - deselect and allow panning
+        setSelectedElement(null);
+      }
+
+      // Handle panning
       if (spacePressed || activeTool === "select") {
         setIsPanning(true);
         setPanStart({
@@ -204,11 +274,27 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
         event.preventDefault();
       }
     },
-    [spacePressed, activeTool, zoom.offsetX, zoom.offsetY],
+    [spacePressed, activeTool, zoom.offsetX, zoom.offsetY, getRelativeFromEvent, findElementHit],
   );
 
   const handleMouseMove = useCallback(
     (event: React.MouseEvent) => {
+      // Handle element dragging
+      if (isDragging && selectedElement && dragStartPos) {
+        const info = getRelativeFromEvent(event);
+        if (info) {
+          const newPosition = info.relative;
+          if (selectedElement.type === "node") {
+            onUpdateNode(selectedElement.id, newPosition);
+          } else if (selectedElement.type === "feature") {
+            onUpdateFeature(selectedElement.id, newPosition);
+          }
+          setDragStartPos(newPosition);
+        }
+        return;
+      }
+
+      // Handle panning
       if (isPanning) {
         const newOffsetX = event.clientX - panStart.x;
         const newOffsetY = event.clientY - panStart.y;
@@ -219,11 +305,24 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
         });
       }
     },
-    [isPanning, panStart, zoom, onZoomChange],
+    [
+      isDragging,
+      selectedElement,
+      dragStartPos,
+      isPanning,
+      panStart,
+      zoom,
+      onZoomChange,
+      getRelativeFromEvent,
+      onUpdateNode,
+      onUpdateFeature,
+    ],
   );
 
   const handleMouseUp = useCallback(() => {
     setIsPanning(false);
+    setIsDragging(false);
+    setDragStartPos(null);
   }, []);
 
   const handlePointerMove = (event: React.MouseEvent) => {
@@ -237,6 +336,8 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
   const handlePointerLeave = () => {
     onCursorChange(null);
     setIsPanning(false);
+    setIsDragging(false);
+    setDragStartPos(null);
   };
 
   const handleClick = (event: React.MouseEvent) => {
@@ -299,7 +400,13 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
     });
   }, [dimensions.height, dimensions.width, edges, nodes, projectPosition]);
 
-  const cursorStyle = isPanning || spacePressed ? "grabbing" : "default";
+  const cursorStyle = isDragging
+    ? "grabbing"
+    : isPanning || spacePressed
+      ? "grabbing"
+      : activeTool === "select"
+        ? "default"
+        : "crosshair";
 
   return (
     <div className="relative flex-1 h-full">
@@ -345,6 +452,9 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
               </svg>
               {nodes.map((node) => {
                 const isActive = pendingEdgeStart === node.id;
+                const isSelected =
+                  selectedElement?.type === "node" &&
+                  selectedElement.id === node.id;
                 // Convert pixel position to percentage for CSS
                 const leftPercent =
                   imageSize[0] > 0
@@ -358,12 +468,18 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                   <button
                     key={node.id}
                     type="button"
-                    className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${isActive ? "border-primary bg-primary/80" : "border-background bg-card"}`}
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-all ${
+                      isSelected
+                        ? "border-primary bg-primary ring-2 ring-primary/50"
+                        : isActive
+                          ? "border-primary bg-primary/80"
+                          : "border-background bg-card hover:border-primary/50"
+                    } ${activeTool === "select" ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
                     style={{
                       left: `${leftPercent}%`,
                       top: `${topPercent}%`,
-                      width: isActive ? 14 : 12,
-                      height: isActive ? 14 : 12,
+                      width: isSelected ? 16 : isActive ? 14 : 12,
+                      height: isSelected ? 16 : isActive ? 14 : 12,
                     }}
                   >
                     <span className="sr-only">{node.id}</span>
@@ -371,6 +487,9 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                 );
               })}
               {features.map((feature) => {
+                const isSelected =
+                  selectedElement?.type === "feature" &&
+                  selectedElement.id === feature.id;
                 // Convert pixel position to percentage for CSS
                 const leftPercent =
                   imageSize[0] > 0
@@ -383,7 +502,11 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                 return (
                   <div
                     key={feature.id}
-                    className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border bg-primary/90 px-2 py-1 text-xs font-medium text-primary-foreground shadow"
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border bg-primary/90 px-2 py-1 text-xs font-medium text-primary-foreground shadow transition-all ${
+                      isSelected
+                        ? "ring-2 ring-primary/70 scale-110"
+                        : "hover:scale-105"
+                    } ${activeTool === "select" ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
                     style={{
                       left: `${leftPercent}%`,
                       top: `${topPercent}%`,
