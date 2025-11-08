@@ -482,7 +482,7 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                     : 0;
 
                 // Use consistent small size
-                const nodeSize = 8;
+                const nodeSize = 4;
 
                 return (
                   <button
@@ -495,7 +495,7 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                         ? "border-primary bg-primary ring-2 ring-primary/50"
                         : isActive
                           ? "border-primary bg-primary/80"
-                          : "border-background bg-card hover:border-primary/50"
+                          : "border-muted-foreground/40 bg-muted-foreground/60 hover:border-primary/50"
                     } ${activeTool === "select" ? "cursor-grab active:cursor-grabbing" : "pointer-events-none"}`}
                     style={{
                       left: `${leftPercent}%`,
