@@ -250,7 +250,7 @@ export default function Home() {
   const canAnnotate = Boolean(imageSrc);
 
   return (
-    <main className="flex min-h-screen bg-background text-foreground">
+    <main className="flex h-screen overflow-hidden bg-background text-foreground">
       <AnnotationSidebar
         imageSrc={imageSrc}
         onUploadImage={handleImageUpload}
@@ -276,27 +276,31 @@ export default function Home() {
         canUndo={canUndo}
         canRedo={canRedo}
       />
-      <section className="flex flex-1 flex-col gap-4 p-6">
-        <AnnotationToolbar
-          activeTool={activeTool}
-          onToolChange={handleToolChange}
-          cursor={cursor}
-          canAnnotate={canAnnotate}
-          pendingEdgeStart={pendingEdgeStart}
-        />
-        <AnnotationCanvas
-          imageSrc={imageSrc}
-          nodes={nodes}
-          edges={edges}
-          features={features}
-          activeTool={activeTool}
-          pendingEdgeStart={pendingEdgeStart}
-          onPendingEdgeChange={setPendingEdgeStart}
-          onAddNode={handleAddNode}
-          onConnectNodes={handleConnectNodes}
-          onPlaceFeature={handlePlaceFeature}
-          onCursorChange={setCursor}
-        />
+      <section className="flex flex-1 min-h-0 flex-col gap-4 p-6 overflow-hidden">
+        <div className="shrink-0">
+          <AnnotationToolbar
+            activeTool={activeTool}
+            onToolChange={handleToolChange}
+            cursor={cursor}
+            canAnnotate={canAnnotate}
+            pendingEdgeStart={pendingEdgeStart}
+          />
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+          <AnnotationCanvas
+            imageSrc={imageSrc}
+            nodes={nodes}
+            edges={edges}
+            features={features}
+            activeTool={activeTool}
+            pendingEdgeStart={pendingEdgeStart}
+            onPendingEdgeChange={setPendingEdgeStart}
+            onAddNode={handleAddNode}
+            onConnectNodes={handleConnectNodes}
+            onPlaceFeature={handlePlaceFeature}
+            onCursorChange={setCursor}
+          />
+        </div>
       </section>
     </main>
   );

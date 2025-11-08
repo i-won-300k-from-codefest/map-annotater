@@ -5,6 +5,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Edge, Position, Vertex } from "@/lib/types";
 import type { AnnotatedFeature, AnnotationTool } from "@/lib/annotation";
 
+/**
+ * Cursor position expressed as raw normalized numbers (0–1 range, not percentages).
+ */
 export interface CursorInfo {
   relative: Position;
   absolute: Position;

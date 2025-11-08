@@ -70,7 +70,7 @@ export function AnnotationSidebar(props: AnnotationSidebarProps) {
   );
 
   return (
-    <aside className="flex h-full w-full max-w-md flex-col gap-6 border-r bg-card p-6">
+    <aside className="flex h-full w-full max-w-md shrink-0 flex-col gap-6 overflow-y-auto border-r bg-card p-6">
       <UploadPanel imageSrc={imageSrc} onUpload={onUploadImage} onClear={onClearImage} />
       <Tabs value={mode} onValueChange={(value) => onModeChange(value as AnnotationMode)} className="space-y-4">
         <TabsList className="grid grid-cols-2">

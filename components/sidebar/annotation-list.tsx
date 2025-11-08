@@ -75,7 +75,7 @@ export function AnnotationList(props: AnnotationListProps) {
         onEdit: (item: Vertex) =>
           setEditing({ type: "node", value: cloneValue(item), originalId: item.id }),
         onDelete: (item: Vertex) => onDeleteNode(item.id),
-        meta: (item: Vertex) => `${(item.position[0] * 100).toFixed(1)}%, ${(item.position[1] * 100).toFixed(1)}%`,
+        meta: (item: Vertex) => `${item.position[0].toFixed(3)}, ${item.position[1].toFixed(3)}`,
       },
       {
         label: "Edges",
@@ -211,14 +211,14 @@ export function AnnotationList(props: AnnotationListProps) {
               <div className="grid grid-cols-2 gap-3">
                 {(["x", "y"] as const).map((axis, index) => (
                   <div className="space-y-1" key={axis}>
-                    <Label htmlFor={`node-${axis}`}>{axis.toUpperCase()} (%)</Label>
+                    <Label htmlFor={`node-${axis}`}>{axis.toUpperCase()}</Label>
                     <Input
                       id={`node-${axis}`}
                       type="number"
                       min={0}
-                      max={100}
-                      step={0.1}
-                      value={(editing.value.position[index] * 100).toFixed(2)}
+                      max={1}
+                      step={0.01}
+                      value={editing.value.position[index].toString()}
                       onChange={(event) =>
                         setEditing((current) =>
                           current && current.type === "node"
@@ -227,7 +227,7 @@ export function AnnotationList(props: AnnotationListProps) {
                                 value: {
                                   ...current.value,
                                   position: current.value.position.map((value, idx) =>
-                                    idx === index ? Number(event.target.value) / 100 : value,
+                                    idx === index ? Number(event.target.value) : value,
                                   ) as Vertex["position"],
                                 },
                               }
@@ -313,13 +313,13 @@ export function AnnotationList(props: AnnotationListProps) {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label>X (%)</Label>
+                  <Label>X</Label>
                   <Input
                     type="number"
                     min={0}
-                    max={100}
-                    step={0.1}
-                    value={(editing.value.position[0] * 100).toFixed(1)}
+                    max={1}
+                    step={0.01}
+                    value={editing.value.position[0].toString()}
                     onChange={(event) =>
                       setEditing((current) =>
                         current && current.type === "feature"
@@ -328,7 +328,7 @@ export function AnnotationList(props: AnnotationListProps) {
                               value: {
                                 ...current.value,
                                 position: [
-                                  Number(event.target.value) / 100,
+                                  Number(event.target.value),
                                   current.value.position[1],
                                 ],
                               },
@@ -339,13 +339,13 @@ export function AnnotationList(props: AnnotationListProps) {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>Y (%)</Label>
+                  <Label>Y</Label>
                   <Input
                     type="number"
                     min={0}
-                    max={100}
-                    step={0.1}
-                    value={(editing.value.position[1] * 100).toFixed(1)}
+                    max={1}
+                    step={0.01}
+                    value={editing.value.position[1].toString()}
                     onChange={(event) =>
                       setEditing((current) =>
                         current && current.type === "feature"
@@ -355,7 +355,7 @@ export function AnnotationList(props: AnnotationListProps) {
                                 ...current.value,
                                 position: [
                                   current.value.position[0],
-                                  Number(event.target.value) / 100,
+                                  Number(event.target.value),
                                 ],
                               },
                             }

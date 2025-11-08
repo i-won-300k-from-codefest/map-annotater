@@ -1,3 +1,6 @@
+/**
+ * Normalized coordinate pair stored as raw numbers (0–1 range, not percentages).
+ */
 type Position = [number, number];
 
 interface PrimitiveBase {

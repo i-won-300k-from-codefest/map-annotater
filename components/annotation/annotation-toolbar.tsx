@@ -21,7 +21,7 @@ export function AnnotationToolbar({
   canAnnotate,
   pendingEdgeStart,
 }: AnnotationToolbarProps) {
-  const formatPosition = (value: number) => `${(value * 100).toFixed(1)}%`;
+  const formatPosition = (value: number) => value.toFixed(3);
   const toolLabel: Record<AnnotationTool, string> = {
     select: "Select",
     "add-node": "Add vertex",
