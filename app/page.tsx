@@ -392,7 +392,7 @@ export default function Home() {
         onExport={handleExport}
         onImport={handleImport}
       />
-      <section className="flex flex-1 min-h-0 flex-col gap-4 p-6 overflow-hidden">
+      <section className="flex flex-1 min-h-0 flex-col gap-2 p-2 overflow-hidden">
         <div className="shrink-0 flex items-center justify-between gap-4">
           <AnnotationToolbar
             activeTool={activeTool}
@@ -407,7 +407,7 @@ export default function Home() {
             disabled={!canAnnotate}
           />
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+        <div className="flex-1 min-h-0 overflow-y-auto pb-2">
           <AnnotationCanvas
             imageSrc={imageSrc}
             imageSize={imageSize}

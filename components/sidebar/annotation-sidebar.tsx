@@ -80,7 +80,7 @@ export function AnnotationSidebar(props: AnnotationSidebarProps) {
   );
 
   return (
-    <aside className="flex h-full w-full max-w-md shrink-0 flex-col gap-6 overflow-y-auto border-r bg-card p-6">
+    <aside className="flex h-full w-full max-w-xs shrink-0 flex-col gap-4 overflow-y-auto border-r bg-card p-4">
       <ImportExportPanel onExport={onExport} onImport={onImport} />
       <UploadPanel
         imageSrc={imageSrc}

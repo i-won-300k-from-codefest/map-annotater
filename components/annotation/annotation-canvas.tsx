@@ -302,7 +302,7 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
   const cursorStyle = isPanning || spacePressed ? "grabbing" : "default";
 
   return (
-    <div className="relative flex-1">
+    <div className="relative flex-1 h-full">
       <div
         ref={containerRef}
         className="relative h-full min-h-[420px] w-full overflow-hidden rounded-xl border bg-muted"
