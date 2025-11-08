@@ -49,7 +49,9 @@ export const createEmptyDraft = (type: FeatureDraft["type"]): FeatureDraft => {
   };
 };
 
-export const featureToolFromType = (type: FeatureDraft["type"]): AnnotationTool =>
+export const featureToolFromType = (
+  type: FeatureDraft["type"],
+): AnnotationTool =>
   type === "entrance"
     ? "feature-entrance"
     : type === "shop"

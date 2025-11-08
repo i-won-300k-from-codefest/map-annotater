@@ -60,7 +60,10 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
     if (!containerRef.current) return;
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
-      setDimensions({ width: entry.contentRect.width, height: entry.contentRect.height });
+      setDimensions({
+        width: entry.contentRect.width,
+        height: entry.contentRect.height,
+      });
     });
     observer.observe(containerRef.current);
     return () => observer.disconnect();
@@ -117,7 +120,13 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
       const normalizedY = (clientY - zoom.offsetY) / (rect.height * zoom.scale);
 
       if (Number.isNaN(normalizedX) || Number.isNaN(normalizedY)) return null;
-      if (normalizedX < 0 || normalizedX > 1 || normalizedY < 0 || normalizedY > 1) return null;
+      if (
+        normalizedX < 0 ||
+        normalizedX > 1 ||
+        normalizedY < 0 ||
+        normalizedY > 1
+      )
+        return null;
 
       // Convert to pixel coordinates based on image dimensions
       const pixelX = Math.round(normalizedX * imageSize[0]);
@@ -140,7 +149,10 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
       let shortest = Number.POSITIVE_INFINITY;
       nodes.forEach((node) => {
         const nodePoint = projectPosition(node.position);
-        const distance = Math.hypot(nodePoint.x - click.x, nodePoint.y - click.y);
+        const distance = Math.hypot(
+          nodePoint.x - click.x,
+          nodePoint.y - click.y,
+        );
         if (distance < threshold && distance < shortest) {
           hit = node.id;
           shortest = distance;
@@ -167,8 +179,10 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
       const newScale = Math.max(0.1, Math.min(10, zoom.scale * zoomFactor));
 
       // Calculate new offsets to zoom towards mouse position
-      const newOffsetX = mouseX - (mouseX - zoom.offsetX) * (newScale / zoom.scale);
-      const newOffsetY = mouseY - (mouseY - zoom.offsetY) * (newScale / zoom.scale);
+      const newOffsetX =
+        mouseX - (mouseX - zoom.offsetX) * (newScale / zoom.scale);
+      const newOffsetY =
+        mouseY - (mouseY - zoom.offsetY) * (newScale / zoom.scale);
 
       onZoomChange({
         scale: newScale,
@@ -183,7 +197,10 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
     (event: React.MouseEvent) => {
       if (spacePressed || activeTool === "select") {
         setIsPanning(true);
-        setPanStart({ x: event.clientX - zoom.offsetX, y: event.clientY - zoom.offsetY });
+        setPanStart({
+          x: event.clientX - zoom.offsetX,
+          y: event.clientY - zoom.offsetY,
+        });
         event.preventDefault();
       }
     },
@@ -329,8 +346,14 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
               {nodes.map((node) => {
                 const isActive = pendingEdgeStart === node.id;
                 // Convert pixel position to percentage for CSS
-                const leftPercent = imageSize[0] > 0 ? (node.position[0] / imageSize[0]) * 100 : 0;
-                const topPercent = imageSize[1] > 0 ? (node.position[1] / imageSize[1]) * 100 : 0;
+                const leftPercent =
+                  imageSize[0] > 0
+                    ? (node.position[0] / imageSize[0]) * 100
+                    : 0;
+                const topPercent =
+                  imageSize[1] > 0
+                    ? (node.position[1] / imageSize[1]) * 100
+                    : 0;
                 return (
                   <button
                     key={node.id}
@@ -349,8 +372,14 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
               })}
               {features.map((feature) => {
                 // Convert pixel position to percentage for CSS
-                const leftPercent = imageSize[0] > 0 ? (feature.position[0] / imageSize[0]) * 100 : 0;
-                const topPercent = imageSize[1] > 0 ? (feature.position[1] / imageSize[1]) * 100 : 0;
+                const leftPercent =
+                  imageSize[0] > 0
+                    ? (feature.position[0] / imageSize[0]) * 100
+                    : 0;
+                const topPercent =
+                  imageSize[1] > 0
+                    ? (feature.position[1] / imageSize[1]) * 100
+                    : 0;
                 return (
                   <div
                     key={feature.id}

@@ -88,7 +88,9 @@ function SortableImageItem({
               <div className="flex flex-col items-center justify-center p-8 text-muted-foreground">
                 <ImageIcon className="h-12 w-12 mb-2" />
                 <p className="text-sm">Failed to load image</p>
-                <p className="text-xs mt-1 text-center break-all">{image.url}</p>
+                <p className="text-xs mt-1 text-center break-all">
+                  {image.url}
+                </p>
               </div>
             ) : (
               <img
@@ -105,7 +107,9 @@ function SortableImageItem({
             </div>
           )}
           {image.caption && (
-            <p className="text-sm mt-2 text-muted-foreground">{image.caption}</p>
+            <p className="text-sm mt-2 text-muted-foreground">
+              {image.caption}
+            </p>
           )}
         </HoverCardContent>
       </HoverCard>
@@ -156,7 +160,7 @@ export function ImageManager({ images, onChange }: ImageManagerProps) {
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -176,7 +180,7 @@ export function ImageManager({ images, onChange }: ImageManagerProps) {
   const handleUpdate = (
     index: number,
     field: "url" | "caption",
-    value: string
+    value: string,
   ) => {
     const updated = [...images];
     updated[index] = { ...updated[index], [field]: value };

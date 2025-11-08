@@ -20,7 +20,11 @@ const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 10;
 const ZOOM_STEP = 0.2;
 
-export function ZoomControls({ zoom, onZoomChange, disabled = false }: ZoomControlsProps) {
+export function ZoomControls({
+  zoom,
+  onZoomChange,
+  disabled = false,
+}: ZoomControlsProps) {
   const handleZoomIn = () => {
     const newScale = Math.min(zoom.scale + ZOOM_STEP, MAX_ZOOM);
     onZoomChange({ ...zoom, scale: newScale });
@@ -41,7 +45,8 @@ export function ZoomControls({ zoom, onZoomChange, disabled = false }: ZoomContr
 
   const canZoomIn = zoom.scale < MAX_ZOOM;
   const canZoomOut = zoom.scale > MIN_ZOOM;
-  const isModified = zoom.scale !== 1 || zoom.offsetX !== 0 || zoom.offsetY !== 0;
+  const isModified =
+    zoom.scale !== 1 || zoom.offsetX !== 0 || zoom.offsetY !== 0;
 
   return (
     <div className="flex items-center gap-1 rounded-lg border bg-card p-1 shadow-sm">

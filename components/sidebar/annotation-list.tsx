@@ -4,13 +4,34 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { CircleDot, GitBranch, Image as ImageIcon, MapPin, Pencil, Redo2, Trash2, Undo2 } from "lucide-react";
+import {
+  CircleDot,
+  GitBranch,
+  Image as ImageIcon,
+  MapPin,
+  Pencil,
+  Redo2,
+  Trash2,
+  Undo2,
+} from "lucide-react";
 import type { Edge, Vertex } from "@/lib/types";
 import type { AnnotatedFeature } from "@/lib/annotation";
 import { ImageManager } from "./image-manager";
@@ -74,9 +95,14 @@ export function AnnotationList(props: AnnotationListProps) {
         items: nodes,
         type: "node" as const,
         onEdit: (item: Vertex) =>
-          setEditing({ type: "node", value: cloneValue(item), originalId: item.id }),
+          setEditing({
+            type: "node",
+            value: cloneValue(item),
+            originalId: item.id,
+          }),
         onDelete: (item: Vertex) => onDeleteNode(item.id),
-        meta: (item: Vertex) => `${Math.round(item.position[0])}, ${Math.round(item.position[1])}`,
+        meta: (item: Vertex) =>
+          `${Math.round(item.position[0])}, ${Math.round(item.position[1])}`,
       },
       {
         label: "Edges",
@@ -85,7 +111,11 @@ export function AnnotationList(props: AnnotationListProps) {
         items: edges,
         type: "edge" as const,
         onEdit: (item: Edge) =>
-          setEditing({ type: "edge", value: cloneValue(item), originalId: item.id }),
+          setEditing({
+            type: "edge",
+            value: cloneValue(item),
+            originalId: item.id,
+          }),
         onDelete: (item: Edge) => onDeleteEdge(item.id),
         meta: (item: Edge) => `${item.source} -> ${item.target}`,
       },
@@ -96,12 +126,14 @@ export function AnnotationList(props: AnnotationListProps) {
         items: features,
         type: "feature" as const,
         onEdit: (item: AnnotatedFeature) =>
-          setEditing({ type: "feature", value: cloneValue(item), originalId: item.id }),
+          setEditing({
+            type: "feature",
+            value: cloneValue(item),
+            originalId: item.id,
+          }),
         onDelete: (item: AnnotatedFeature) => onDeleteFeature(item.id),
         meta: (item: AnnotatedFeature) =>
-          item.type === "entrance"
-            ? item.label || "entrance"
-            : item.name,
+          item.type === "entrance" ? item.label || "entrance" : item.name,
       },
     ],
     [edges, features, nodes, onDeleteEdge, onDeleteFeature, onDeleteNode],
@@ -123,18 +155,31 @@ export function AnnotationList(props: AnnotationListProps) {
     <Card className="flex h-full flex-col">
       <CardHeader className="space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-base font-semibold">Current annotations</CardTitle>
+          <CardTitle className="text-base font-semibold">
+            Current annotations
+          </CardTitle>
           <div className="flex gap-2">
-            <Button size="icon" variant="outline" disabled={!canUndo} onClick={onUndo}>
+            <Button
+              size="icon"
+              variant="outline"
+              disabled={!canUndo}
+              onClick={onUndo}
+            >
               <Undo2 className="h-4 w-4" />
             </Button>
-            <Button size="icon" variant="outline" disabled={!canRedo} onClick={onRedo}>
+            <Button
+              size="icon"
+              variant="outline"
+              disabled={!canRedo}
+              onClick={onRedo}
+            >
               <Redo2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
         <p className="text-sm text-muted-foreground">
-          Review, update, or remove any annotation you have created. Undo and redo apply across modes.
+          Review, update, or remove any annotation you have created. Undo and
+          redo apply across modes.
         </p>
       </CardHeader>
       <CardContent className="flex-1 overflow-hidden p-0">
@@ -150,31 +195,45 @@ export function AnnotationList(props: AnnotationListProps) {
                 {section.items.length ? (
                   <div className="space-y-2">
                     {section.items.map((item) => {
-                      const imageCount = section.type === "feature" && "images" in item
-                        ? (item as AnnotatedFeature).images?.length ?? 0
-                        : 0;
+                      const imageCount =
+                        section.type === "feature" && "images" in item
+                          ? ((item as AnnotatedFeature).images?.length ?? 0)
+                          : 0;
 
                       return (
                         <div
-                          key={(item as { id?: string }).id ?? JSON.stringify(item)}
+                          key={
+                            (item as { id?: string }).id ?? JSON.stringify(item)
+                          }
                           className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm"
                         >
                           <div className="space-y-1 flex-1">
                             <div className="flex items-center gap-2">
                               <p className="font-medium">
-                                {"id" in item && item.id ? item.id : section.label.slice(0, -1)}
+                                {"id" in item && item.id
+                                  ? item.id
+                                  : section.label.slice(0, -1)}
                               </p>
                               {imageCount > 0 && (
-                                <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                                <Badge
+                                  variant="secondary"
+                                  className="flex items-center gap-1 text-xs"
+                                >
                                   <ImageIcon className="h-3 w-3" />
                                   {imageCount}
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground">{section.meta(item as never)}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {section.meta(item as never)}
+                            </p>
                           </div>
                           <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" onClick={() => section.onEdit(item as never)}>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => section.onEdit(item as never)}
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
@@ -191,7 +250,9 @@ export function AnnotationList(props: AnnotationListProps) {
                     })}
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">{section.emptyLabel}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {section.emptyLabel}
+                  </p>
                 )}
                 <Separator />
               </div>
@@ -199,7 +260,10 @@ export function AnnotationList(props: AnnotationListProps) {
           </div>
         </ScrollArea>
       </CardContent>
-      <Dialog open={Boolean(editing)} onOpenChange={(isOpen) => (!isOpen ? setEditing(null) : null)}>
+      <Dialog
+        open={Boolean(editing)}
+        onOpenChange={(isOpen) => (!isOpen ? setEditing(null) : null)}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit {editing?.type}</DialogTitle>
@@ -226,13 +290,17 @@ export function AnnotationList(props: AnnotationListProps) {
               <div className="grid grid-cols-2 gap-3">
                 {(["x", "y"] as const).map((axis, index) => (
                   <div className="space-y-1" key={axis}>
-                    <Label htmlFor={`node-${axis}`}>{axis.toUpperCase()} (pixels)</Label>
+                    <Label htmlFor={`node-${axis}`}>
+                      {axis.toUpperCase()} (pixels)
+                    </Label>
                     <Input
                       id={`node-${axis}`}
                       type="number"
                       min={0}
                       step={1}
-                      value={Math.round(editing.value.position[index]).toString()}
+                      value={Math.round(
+                        editing.value.position[index],
+                      ).toString()}
                       onChange={(event) =>
                         setEditing((current) =>
                           current && current.type === "node"
@@ -240,8 +308,11 @@ export function AnnotationList(props: AnnotationListProps) {
                                 ...current,
                                 value: {
                                   ...current.value,
-                                  position: current.value.position.map((value, idx) =>
-                                    idx === index ? Number(event.target.value) : value,
+                                  position: current.value.position.map(
+                                    (value, idx) =>
+                                      idx === index
+                                        ? Number(event.target.value)
+                                        : value,
                                   ) as Vertex["position"],
                                 },
                               }
@@ -280,7 +351,10 @@ export function AnnotationList(props: AnnotationListProps) {
                   onValueChange={(value) =>
                     setEditing((current) =>
                       current && current.type === "edge"
-                        ? { ...current, value: { ...current.value, source: value } }
+                        ? {
+                            ...current,
+                            value: { ...current.value, source: value },
+                          }
                         : current,
                     )
                   }
@@ -304,7 +378,10 @@ export function AnnotationList(props: AnnotationListProps) {
                   onValueChange={(value) =>
                     setEditing((current) =>
                       current && current.type === "edge"
-                        ? { ...current, value: { ...current.value, target: value } }
+                        ? {
+                            ...current,
+                            value: { ...current.value, target: value },
+                          }
                         : current,
                     )
                   }
@@ -385,10 +462,15 @@ export function AnnotationList(props: AnnotationListProps) {
                       value={editing.value.label}
                       onChange={(event) =>
                         setEditing((current) =>
-                          current && current.type === "feature" && current.value.type === "entrance"
+                          current &&
+                          current.type === "feature" &&
+                          current.value.type === "entrance"
                             ? {
                                 ...current,
-                                value: { ...current.value, label: event.target.value },
+                                value: {
+                                  ...current.value,
+                                  label: event.target.value,
+                                },
                               }
                             : current,
                         )
@@ -401,10 +483,15 @@ export function AnnotationList(props: AnnotationListProps) {
                       value={editing.value.target}
                       onChange={(event) =>
                         setEditing((current) =>
-                          current && current.type === "feature" && current.value.type === "entrance"
+                          current &&
+                          current.type === "feature" &&
+                          current.value.type === "entrance"
                             ? {
                                 ...current,
-                                value: { ...current.value, target: event.target.value },
+                                value: {
+                                  ...current.value,
+                                  target: event.target.value,
+                                },
                               }
                             : current,
                         )
@@ -419,10 +506,15 @@ export function AnnotationList(props: AnnotationListProps) {
                     value={editing.value.name}
                     onChange={(event) =>
                       setEditing((current) =>
-                        current && current.type === "feature" && current.value.type !== "entrance"
+                        current &&
+                        current.type === "feature" &&
+                        current.value.type !== "entrance"
                           ? {
                               ...current,
-                              value: { ...current.value, name: event.target.value },
+                              value: {
+                                ...current.value,
+                                name: event.target.value,
+                              },
                             }
                           : current,
                       )

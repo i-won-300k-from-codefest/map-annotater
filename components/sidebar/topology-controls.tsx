@@ -56,8 +56,8 @@ export function TopologyControls({
           </Button>
         </div>
         <p className="text-muted-foreground">
-          Click anywhere on the base image to drop vertices. Use connect edge
-          to click two existing vertices and form paths between them.
+          Click anywhere on the base image to drop vertices. Use connect edge to
+          click two existing vertices and form paths between them.
         </p>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <Badge variant="secondary">{nodeCount} vertices</Badge>

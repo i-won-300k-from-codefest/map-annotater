@@ -5,7 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { AnnotationTool, FeatureDraft } from "@/lib/annotation";
@@ -62,7 +68,12 @@ export function FeatureControls({
       <CardContent className="space-y-4 text-sm">
         <div className="space-y-2">
           <Label>Feature type</Label>
-          <Select value={draft.type} onValueChange={(value) => handleTypeChange(value as FeatureDraft["type"])}>
+          <Select
+            value={draft.type}
+            onValueChange={(value) =>
+              handleTypeChange(value as FeatureDraft["type"])
+            }
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select feature" />
             </SelectTrigger>
@@ -143,10 +154,12 @@ export function FeatureControls({
             <Store className="h-3.5 w-3.5" /> {featureCounts.shop} shops
           </Badge>
           <Badge variant="secondary" className="flex items-center gap-1">
-            <UtensilsCrossed className="h-3.5 w-3.5" /> {featureCounts.restaurant} restaurants
+            <UtensilsCrossed className="h-3.5 w-3.5" />{" "}
+            {featureCounts.restaurant} restaurants
           </Badge>
           <Badge variant="secondary" className="flex items-center gap-1">
-            <DoorOpen className="h-3.5 w-3.5" /> {featureCounts.entrance} entrances
+            <DoorOpen className="h-3.5 w-3.5" /> {featureCounts.entrance}{" "}
+            entrances
           </Badge>
         </div>
         <p className="text-muted-foreground">

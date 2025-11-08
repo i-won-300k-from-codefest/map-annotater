@@ -1,7 +1,12 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { AnnotationMode, AnnotationTool, AnnotatedFeature, FeatureDraft } from "@/lib/annotation";
+import type {
+  AnnotationMode,
+  AnnotationTool,
+  AnnotatedFeature,
+  FeatureDraft,
+} from "@/lib/annotation";
 import type { Edge, Vertex } from "@/lib/types";
 import { UploadPanel } from "./upload-panel";
 import { TopologyControls } from "./topology-controls";
@@ -77,8 +82,16 @@ export function AnnotationSidebar(props: AnnotationSidebarProps) {
   return (
     <aside className="flex h-full w-full max-w-md shrink-0 flex-col gap-6 overflow-y-auto border-r bg-card p-6">
       <ImportExportPanel onExport={onExport} onImport={onImport} />
-      <UploadPanel imageSrc={imageSrc} onUpload={onUploadImage} onClear={onClearImage} />
-      <Tabs value={mode} onValueChange={(value) => onModeChange(value as AnnotationMode)} className="space-y-4">
+      <UploadPanel
+        imageSrc={imageSrc}
+        onUpload={onUploadImage}
+        onClear={onClearImage}
+      />
+      <Tabs
+        value={mode}
+        onValueChange={(value) => onModeChange(value as AnnotationMode)}
+        className="space-y-4"
+      >
         <TabsList className="grid grid-cols-2">
           <TabsTrigger value="topology">Topology</TabsTrigger>
           <TabsTrigger value="features">Features</TabsTrigger>
