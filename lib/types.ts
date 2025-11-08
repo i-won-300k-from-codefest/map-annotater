@@ -74,7 +74,7 @@ export interface FeatureImage {
  * that are placed on the map at specific positions.
  */
 interface FeatureBase {
-  type: "shop" | "restaurant" | "entrance";
+  type: "shop" | "restaurant" | "entrance" | "restroom";
   position: Position;
   images?: FeatureImage[];
 }
@@ -122,11 +122,24 @@ export interface Entrance extends FeatureBase {
 }
 
 /**
+ * A restroom feature on the map.
+ *
+ * Represents a public restroom or washroom facility that can be marked
+ * and labeled on the map.
+ *
+ * @property label - Display label for the restroom (e.g., "Men's", "Women's", "Family", "Accessible")
+ */
+export interface Restroom extends FeatureBase {
+  type: "restroom";
+  label: string;
+}
+
+/**
  * Union type representing any feature element on the map.
  *
- * A feature can be a shop, restaurant, or entrance to another area.
+ * A feature can be a shop, restaurant, entrance to another area, or restroom.
  */
-export type Feature = Shop | Restaurant | Entrance;
+export type Feature = Shop | Restaurant | Entrance | Restroom;
 
 /**
  * An area on the map representing a distinct spatial region.
