@@ -457,6 +457,9 @@ export default function Home() {
             onPlaceFeature={handlePlaceFeature}
             onUpdateNode={handleUpdateNodePosition}
             onUpdateFeature={handleUpdateFeaturePosition}
+            onDeleteNode={handleDeleteNode}
+            onDeleteEdge={handleDeleteEdge}
+            onDeleteFeature={handleDeleteFeature}
             onCursorChange={setCursor}
             zoom={zoom}
             onZoomChange={setZoom}

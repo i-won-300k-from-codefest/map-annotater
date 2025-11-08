@@ -28,6 +28,9 @@ interface AnnotationCanvasProps {
   onPlaceFeature: (position: Position) => void;
   onUpdateNode: (nodeId: string, position: Position) => void;
   onUpdateFeature: (featureId: string, position: Position) => void;
+  onDeleteNode: (nodeId: string) => void;
+  onDeleteEdge: (edgeId: string) => void;
+  onDeleteFeature: (featureId: string) => void;
   onCursorChange: (cursor: CursorInfo | null) => void;
   zoom: ZoomState;
   onZoomChange: (zoom: ZoomState) => void;
@@ -35,8 +38,31 @@ interface AnnotationCanvasProps {
 
 type SelectedElement =
   | { type: "node"; id: string }
+  | { type: "edge"; id: string }
   | { type: "feature"; id: string }
   | null;
+
+const pointToSegmentDistance = (
+  point: { x: number; y: number },
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+) => {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+
+  if (dx === 0 && dy === 0) {
+    return Math.hypot(point.x - start.x, point.y - start.y);
+  }
+
+  const t =
+    ((point.x - start.x) * dx + (point.y - start.y) * dy) /
+    (dx * dx + dy * dy);
+  const clampedT = Math.max(0, Math.min(1, t));
+  const closestX = start.x + clampedT * dx;
+  const closestY = start.y + clampedT * dy;
+
+  return Math.hypot(point.x - closestX, point.y - closestY);
+};
 
 export function AnnotationCanvas(props: AnnotationCanvasProps) {
   const {
@@ -53,6 +79,9 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
     onPlaceFeature,
     onUpdateNode,
     onUpdateFeature,
+    onDeleteNode,
+    onDeleteEdge,
+    onDeleteFeature,
     onCursorChange,
     zoom,
     onZoomChange,
@@ -67,7 +96,20 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
   const [selectedElement, setSelectedElement] = useState<SelectedElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartPos, setDragStartPos] = useState<Position | null>(null);
-  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+
+  const deleteSelectedElement = useCallback(() => {
+    if (!selectedElement) return;
+    if (selectedElement.type === "node") {
+      onDeleteNode(selectedElement.id);
+    } else if (selectedElement.type === "edge") {
+      onDeleteEdge(selectedElement.id);
+    } else if (selectedElement.type === "feature") {
+      onDeleteFeature(selectedElement.id);
+    }
+    setSelectedElement(null);
+    setIsDragging(false);
+    setDragStartPos(null);
+  }, [onDeleteEdge, onDeleteFeature, onDeleteNode, selectedElement]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -82,7 +124,7 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
     return () => observer.disconnect();
   }, []);
 
-  // Keyboard event listeners for space key (for panning)
+  // Keyboard event listeners for space key (panning) and delete shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't intercept space if user is typing in an input or textarea
@@ -91,6 +133,12 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
         target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
         target.isContentEditable;
+
+      if ((e.key === "Delete" || e.key === "Backspace") && !isTyping) {
+        deleteSelectedElement();
+        e.preventDefault();
+        return;
+      }
 
       if (e.code === "Space" && !e.repeat && !isTyping) {
         setSpacePressed(true);
@@ -109,7 +157,7 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, []);
+  }, [deleteSelectedElement]);
 
   const projectPosition = useCallback(
     (position: Position) => {
@@ -206,6 +254,32 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
     [dimensions.height, dimensions.width, features, projectPosition],
   );
 
+  const findEdgeHit = useCallback(
+    (position: Position) => {
+      if (!dimensions.width || !dimensions.height) return null;
+      const click = projectPosition(position);
+      const threshold = 12;
+      let hit: string | null = null;
+      let shortest = Number.POSITIVE_INFINITY;
+
+      edges.forEach((edge) => {
+        const source = nodes.find((node) => node.id === edge.source);
+        const target = nodes.find((node) => node.id === edge.target);
+        if (!source || !target) return;
+        const start = projectPosition(source.position);
+        const end = projectPosition(target.position);
+        const distance = pointToSegmentDistance(click, start, end);
+        if (distance < threshold && distance < shortest) {
+          hit = edge.id;
+          shortest = distance;
+        }
+      });
+
+      return hit;
+    },
+    [dimensions.height, dimensions.width, edges, nodes, projectPosition],
+  );
+
   const findElementHit = useCallback(
     (position: Position): SelectedElement => {
       // Check features first (they're rendered on top)
@@ -218,9 +292,13 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
       if (nodeId) {
         return { type: "node", id: nodeId };
       }
+      const edgeId = findEdgeHit(position);
+      if (edgeId) {
+        return { type: "edge", id: edgeId };
+      }
       return null;
     },
-    [findFeatureHit, findNodeHit],
+    [findEdgeHit, findFeatureHit, findNodeHit],
   );
 
   const handleWheel = useCallback(
@@ -263,8 +341,13 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
         if (hitElement) {
           // Start dragging the element
           setSelectedElement(hitElement);
-          setIsDragging(true);
-          setDragStartPos(info.relative);
+          if (hitElement.type === "node" || hitElement.type === "feature") {
+            setIsDragging(true);
+            setDragStartPos(info.relative);
+          } else {
+            setIsDragging(false);
+            setDragStartPos(null);
+          }
           event.preventDefault();
           return;
         }
@@ -399,6 +482,8 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
       if (!source || !target) return null;
       const { x: x1, y: y1 } = projectPosition(source.position);
       const { x: x2, y: y2 } = projectPosition(target.position);
+      const isSelected =
+        selectedElement?.type === "edge" && selectedElement.id === edge.id;
       return (
         <line
           key={edge.id}
@@ -406,14 +491,14 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
           y1={y1}
           x2={x2}
           y2={y2}
-          stroke="var(--primary)"
-          strokeWidth={2}
+          stroke={isSelected ? "var(--destructive)" : "var(--primary)"}
+          strokeWidth={isSelected ? 3 : 2}
           strokeLinecap="round"
-          opacity={0.85}
+          opacity={isSelected ? 1 : 0.85}
         />
       );
     });
-  }, [dimensions.height, dimensions.width, edges, nodes, projectPosition]);
+  }, [dimensions.height, dimensions.width, edges, nodes, projectPosition, selectedElement]);
 
   const cursorStyle = isDragging
     ? "grabbing"
@@ -470,7 +555,6 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                 const isSelected =
                   selectedElement?.type === "node" &&
                   selectedElement.id === node.id;
-                const isHovered = hoveredNode === node.id;
                 // Convert pixel position to percentage for CSS
                 const leftPercent =
                   imageSize[0] > 0
@@ -488,8 +572,6 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                   <button
                     key={node.id}
                     type="button"
-                    onMouseEnter={() => setHoveredNode(node.id)}
-                    onMouseLeave={() => setHoveredNode(null)}
                     className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-all ${
                       isSelected
                         ? "border-primary bg-primary ring-2 ring-primary/50"
