@@ -249,6 +249,64 @@ export default function Home() {
     [commit],
   );
 
+  const handleExport = useCallback(() => {
+    const data = {
+      nodes,
+      edges,
+      features,
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `area-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [nodes, edges, features]);
+
+  const handleImport = useCallback(
+    (file: File) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const content = reader.result;
+          if (typeof content !== "string") {
+            throw new Error("Invalid file content");
+          }
+
+          const data = JSON.parse(content);
+
+          // Validate the structure
+          if (!data || typeof data !== "object") {
+            throw new Error("Invalid JSON structure");
+          }
+
+          const importedNodes = Array.isArray(data.nodes) ? data.nodes : [];
+          const importedEdges = Array.isArray(data.edges) ? data.edges : [];
+          const importedFeatures = Array.isArray(data.features) ? data.features : [];
+
+          // Replace current state with imported data
+          commit(() => ({
+            nodes: importedNodes,
+            edges: importedEdges,
+            features: importedFeatures,
+          }));
+        } catch (error) {
+          console.error("Failed to import data:", error);
+          alert("Failed to import data. Please ensure the file is a valid JSON file.");
+        }
+      };
+      reader.readAsText(file);
+    },
+    [commit],
+  );
+
   const canAnnotate = Boolean(imageSrc);
 
   return (
@@ -277,6 +335,8 @@ export default function Home() {
         onRedo={redo}
         canUndo={canUndo}
         canRedo={canRedo}
+        onExport={handleExport}
+        onImport={handleImport}
       />
       <section className="flex flex-1 min-h-0 flex-col gap-4 p-6 overflow-hidden">
         <div className="shrink-0 flex items-center justify-between gap-4">
