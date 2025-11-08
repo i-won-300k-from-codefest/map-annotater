@@ -250,13 +250,21 @@ export default function Home() {
   );
 
   const handleExport = useCallback(() => {
-    const data = {
-      nodes,
-      edges,
-      features,
+    // Combine nodes and edges into topology array
+    const topology = [...nodes, ...edges];
+
+    // Remove id from features to match Feature type (not AnnotatedFeature)
+    const featuresWithoutId = features.map(({ id, ...feature }) => feature);
+
+    const area = {
+      id: "",
+      name: "",
+      descriptions: [],
+      topology,
+      features: featuresWithoutId,
     };
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
+    const blob = new Blob([JSON.stringify(area, null, 2)], {
       type: "application/json",
     });
 
@@ -280,16 +288,26 @@ export default function Home() {
             throw new Error("Invalid file content");
           }
 
-          const data = JSON.parse(content);
+          const area = JSON.parse(content);
 
-          // Validate the structure
-          if (!data || typeof data !== "object") {
+          // Validate the Area structure
+          if (!area || typeof area !== "object") {
             throw new Error("Invalid JSON structure");
           }
 
-          const importedNodes = Array.isArray(data.nodes) ? data.nodes : [];
-          const importedEdges = Array.isArray(data.edges) ? data.edges : [];
-          const importedFeatures = Array.isArray(data.features) ? data.features : [];
+          if (!Array.isArray(area.topology) || !Array.isArray(area.features)) {
+            throw new Error("Invalid Area structure: missing topology or features");
+          }
+
+          // Separate nodes and edges from topology array
+          const importedNodes = area.topology.filter((p: any) => p.type === "node");
+          const importedEdges = area.topology.filter((p: any) => p.type === "edge");
+
+          // Add IDs to features for AnnotatedFeature type
+          const importedFeatures = area.features.map((feature: any) => ({
+            ...feature,
+            id: generateId("f"),
+          }));
 
           // Replace current state with imported data
           commit(() => ({
@@ -299,7 +317,7 @@ export default function Home() {
           }));
         } catch (error) {
           console.error("Failed to import data:", error);
-          alert("Failed to import data. Please ensure the file is a valid JSON file.");
+          alert("Failed to import data. Please ensure the file is a valid Area JSON file.");
         }
       };
       reader.readAsText(file);
