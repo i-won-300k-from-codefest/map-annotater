@@ -147,7 +147,7 @@ export default function Home() {
 
   const handlePlaceFeature = useCallback(
     (position: Position) => {
-      if (featureDraft.type === "entrance") {
+      if (featureDraft.type === "entrance" || featureDraft.type === "restroom") {
         if (!featureDraft.label.trim()) return;
       } else if (!featureDraft.name.trim()) {
         return;
@@ -163,13 +163,21 @@ export default function Home() {
               position,
               images: featureDraft.images,
             }
-          : {
-              id: generateId("f"),
-              type: featureDraft.type,
-              name: featureDraft.name.trim(),
-              position,
-              images: featureDraft.images,
-            };
+          : featureDraft.type === "restroom"
+            ? {
+                id: generateId("f"),
+                type: "restroom",
+                label: featureDraft.label.trim(),
+                position,
+                images: featureDraft.images,
+              }
+            : {
+                id: generateId("f"),
+                type: featureDraft.type,
+                name: featureDraft.name.trim(),
+                position,
+                images: featureDraft.images,
+              };
 
       commit((prev) => ({
         ...prev,

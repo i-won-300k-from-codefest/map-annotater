@@ -76,7 +76,7 @@ export function AnnotationSidebar(props: AnnotationSidebarProps) {
       acc[feature.type] = (acc[feature.type] ?? 0) + 1;
       return acc;
     },
-    { shop: 0, restaurant: 0, entrance: 0 },
+    { shop: 0, restaurant: 0, entrance: 0, restroom: 0 },
   );
 
   return (

@@ -8,12 +8,14 @@ export type AnnotationTool =
   | "add-edge"
   | "feature-shop"
   | "feature-restaurant"
-  | "feature-entrance";
+  | "feature-entrance"
+  | "feature-restroom";
 
 export const featureTools = [
   "feature-shop",
   "feature-restaurant",
   "feature-entrance",
+  "feature-restroom",
 ] as const satisfies AnnotationTool[];
 
 export const isFeatureTool = (tool: AnnotationTool) =>
@@ -30,6 +32,11 @@ export type FeatureDraft =
       label: string;
       target: string;
       images: FeatureImage[];
+    }
+  | {
+      type: "restroom";
+      label: string;
+      images: FeatureImage[];
     };
 
 export const createEmptyDraft = (type: FeatureDraft["type"]): FeatureDraft => {
@@ -38,6 +45,14 @@ export const createEmptyDraft = (type: FeatureDraft["type"]): FeatureDraft => {
       type,
       label: "",
       target: "",
+      images: [],
+    };
+  }
+
+  if (type === "restroom") {
+    return {
+      type,
+      label: "",
       images: [],
     };
   }
@@ -54,8 +69,10 @@ export const featureToolFromType = (
 ): AnnotationTool =>
   type === "entrance"
     ? "feature-entrance"
-    : type === "shop"
-      ? "feature-shop"
-      : "feature-restaurant";
+    : type === "restroom"
+      ? "feature-restroom"
+      : type === "shop"
+        ? "feature-shop"
+        : "feature-restaurant";
 
 export type AnnotatedFeature = Feature & { id: string };

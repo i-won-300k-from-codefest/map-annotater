@@ -30,6 +30,7 @@ const toolMap: Record<FeatureDraft["type"], AnnotationTool> = {
   shop: "feature-shop",
   restaurant: "feature-restaurant",
   entrance: "feature-entrance",
+  restroom: "feature-restroom",
 };
 
 export function FeatureControls({
@@ -42,7 +43,7 @@ export function FeatureControls({
   const currentTool = toolMap[draft.type];
   const isArmed = activeTool === currentTool;
   const isReady =
-    draft.type === "entrance"
+    draft.type === "entrance" || draft.type === "restroom"
       ? Boolean(draft.label.trim())
       : Boolean(draft.name.trim());
 
@@ -81,17 +82,18 @@ export function FeatureControls({
               <SelectItem value="shop">Shop</SelectItem>
               <SelectItem value="restaurant">Restaurant</SelectItem>
               <SelectItem value="entrance">Entrance</SelectItem>
+              <SelectItem value="restroom">Restroom</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        {draft.type === "entrance" ? (
+        {draft.type === "entrance" || draft.type === "restroom" ? (
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label htmlFor="entrance-label">Label</Label>
+              <Label htmlFor="feature-label">Label</Label>
               <Input
-                id="entrance-label"
+                id="feature-label"
                 value={draft.label}
-                placeholder="East stairwell"
+                placeholder={draft.type === "entrance" ? "East stairwell" : "Men's restroom"}
                 onChange={(event) =>
                   onDraftChange({
                     ...draft,
@@ -100,20 +102,22 @@ export function FeatureControls({
                 }
               />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="entrance-target">Target area</Label>
-              <Input
-                id="entrance-target"
-                value={draft.target}
-                placeholder="Parking level"
-                onChange={(event) =>
-                  onDraftChange({
-                    ...draft,
-                    target: event.target.value,
-                  })
-                }
-              />
-            </div>
+            {draft.type === "entrance" && (
+              <div className="space-y-1">
+                <Label htmlFor="entrance-target">Target area</Label>
+                <Input
+                  id="entrance-target"
+                  value={draft.target}
+                  placeholder="Parking level"
+                  onChange={(event) =>
+                    onDraftChange({
+                      ...draft,
+                      target: event.target.value,
+                    })
+                  }
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-1">

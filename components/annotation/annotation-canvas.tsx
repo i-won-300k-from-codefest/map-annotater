@@ -512,8 +512,8 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                       top: `${topPercent}%`,
                     }}
                   >
-                    {feature.type === "entrance"
-                      ? feature.label || "Entrance"
+                    {feature.type === "entrance" || feature.type === "restroom"
+                      ? feature.label
                       : feature.name}
                   </div>
                 );

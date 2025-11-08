@@ -133,7 +133,7 @@ export function AnnotationList(props: AnnotationListProps) {
           }),
         onDelete: (item: AnnotatedFeature) => onDeleteFeature(item.id),
         meta: (item: AnnotatedFeature) =>
-          item.type === "entrance" ? item.label || "entrance" : item.name,
+          item.type === "entrance" || item.type === "restroom" ? item.label : item.name,
       },
     ],
     [edges, features, nodes, onDeleteEdge, onDeleteFeature, onDeleteNode],
@@ -454,7 +454,7 @@ export function AnnotationList(props: AnnotationListProps) {
                   />
                 </div>
               </div>
-              {editing.value.type === "entrance" ? (
+              {editing.value.type === "entrance" || editing.value.type === "restroom" ? (
                 <div className="space-y-3">
                   <div className="space-y-1">
                     <Label>Label</Label>
@@ -464,7 +464,7 @@ export function AnnotationList(props: AnnotationListProps) {
                         setEditing((current) =>
                           current &&
                           current.type === "feature" &&
-                          current.value.type === "entrance"
+                          (current.value.type === "entrance" || current.value.type === "restroom")
                             ? {
                                 ...current,
                                 value: {
@@ -477,27 +477,29 @@ export function AnnotationList(props: AnnotationListProps) {
                       }
                     />
                   </div>
-                  <div className="space-y-1">
-                    <Label>Target area</Label>
-                    <Input
-                      value={editing.value.target}
-                      onChange={(event) =>
-                        setEditing((current) =>
-                          current &&
-                          current.type === "feature" &&
-                          current.value.type === "entrance"
-                            ? {
-                                ...current,
-                                value: {
-                                  ...current.value,
-                                  target: event.target.value,
-                                },
-                              }
-                            : current,
-                        )
-                      }
-                    />
-                  </div>
+                  {editing.value.type === "entrance" && (
+                    <div className="space-y-1">
+                      <Label>Target area</Label>
+                      <Input
+                        value={editing.value.target}
+                        onChange={(event) =>
+                          setEditing((current) =>
+                            current &&
+                            current.type === "feature" &&
+                            current.value.type === "entrance"
+                              ? {
+                                  ...current,
+                                  value: {
+                                    ...current.value,
+                                    target: event.target.value,
+                                  },
+                                }
+                              : current,
+                          )
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -508,7 +510,8 @@ export function AnnotationList(props: AnnotationListProps) {
                       setEditing((current) =>
                         current &&
                         current.type === "feature" &&
-                        current.value.type !== "entrance"
+                        current.value.type !== "entrance" &&
+                        current.value.type !== "restroom"
                           ? {
                               ...current,
                               value: {

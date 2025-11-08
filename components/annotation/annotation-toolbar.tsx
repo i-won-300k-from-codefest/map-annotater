@@ -29,6 +29,7 @@ export function AnnotationToolbar({
     "feature-shop": "Shop pin",
     "feature-restaurant": "Restaurant pin",
     "feature-entrance": "Entrance pin",
+    "feature-restroom": "Restroom pin",
   };
 
   return (
