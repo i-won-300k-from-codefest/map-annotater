@@ -464,8 +464,6 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                   selectedElement?.type === "node" &&
                   selectedElement.id === node.id;
                 const isHovered = hoveredNode === node.id;
-                const shouldEnlargeOnHover =
-                  isHovered && activeTool === "add-edge";
                 // Convert pixel position to percentage for CSS
                 const leftPercent =
                   imageSize[0] > 0
@@ -476,14 +474,8 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                     ? (node.position[1] / imageSize[1]) * 100
                     : 0;
 
-                // Size logic: smaller by default, larger when selected/active or when hovered in edge mode
-                const nodeSize = isSelected
-                  ? 16
-                  : isActive
-                    ? 14
-                    : shouldEnlargeOnHover
-                      ? 12
-                      : 8;
+                // Use consistent small size
+                const nodeSize = 8;
 
                 return (
                   <button
