@@ -1,9 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+} from "react";
 import type { Edge, Position, Vertex } from "@/lib/types";
 import type { AnnotatedFeature, AnnotationTool } from "@/lib/annotation";
+import { findClosedLoops } from "@/lib/graph";
 import type { ZoomState } from "./zoom-controls";
 
 /**
@@ -103,6 +111,11 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
   const [selectedElement, setSelectedElement] = useState<SelectedElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartPos, setDragStartPos] = useState<Position | null>(null);
+  const nodesById = useMemo(
+    () => new Map(nodes.map((node) => [node.id, node])),
+    [nodes],
+  );
+  const closedLoops = useMemo(() => findClosedLoops(nodes, edges), [nodes, edges]);
 
   const deleteSelectedElement = useCallback(() => {
     if (!selectedElement) return;
@@ -507,6 +520,45 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
     });
   }, [dimensions.height, dimensions.width, edges, nodes, projectPosition, selectedElement]);
 
+  const renderAreas = useMemo(() => {
+    if (!dimensions.width || !dimensions.height) return null;
+    if (!closedLoops.length) return null;
+
+    return closedLoops
+      .map((loop) => {
+        const projected = loop
+          .map((nodeId) => nodesById.get(nodeId))
+          .filter((node): node is Vertex => Boolean(node))
+          .map((node) => projectPosition(node.position));
+
+        if (projected.length < 3) return null;
+
+        const area = Math.abs(
+          projected.reduce((sum, point, index) => {
+            const next = projected[(index + 1) % projected.length];
+            return sum + point.x * next.y - next.x * point.y;
+          }, 0) / 2,
+        );
+
+        if (area < 50) return null;
+
+        const pointsAttr = projected.map(({ x, y }) => `${x},${y}`).join(" ");
+
+        return (
+          <polygon
+            key={`area-${loop.join("-")}`}
+            points={pointsAttr}
+            fill="var(--primary)"
+            fillOpacity={0.15}
+            stroke="var(--primary)"
+            strokeOpacity={0.35}
+            strokeWidth={1}
+          />
+        );
+      })
+      .filter((polygon): polygon is ReactElement => Boolean(polygon));
+  }, [closedLoops, dimensions.height, dimensions.width, nodesById, projectPosition]);
+
   const cursorStyle = isDragging
     ? "grabbing"
     : isPanning || spacePressed
@@ -555,6 +607,7 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
           {imageSrc ? (
             <>
               <svg className="pointer-events-none absolute inset-0 h-full w-full">
+                {renderAreas}
                 {renderEdges}
               </svg>
               {nodes.map((node) => {
