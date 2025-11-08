@@ -12,7 +12,7 @@ import {
   type ZoomState,
 } from "@/components/annotation/zoom-controls";
 import { useAnnotationHistory } from "@/hooks/use-annotation-history";
-import type { Edge, Feature, Position, Vertex } from "@/lib/types";
+import type { Area, Edge, Feature, Position, Vertex } from "@/lib/types";
 import {
   createEmptyDraft,
   featureToolFromType,
@@ -26,6 +26,7 @@ import { generateId } from "@/lib/utils";
 
 export default function Home() {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [imageSize, setImageSize] = useState<[number, number]>([0, 0]);
   const [mode, setMode] = useState<AnnotationMode>("topology");
   const [activeTool, setActiveTool] = useState<AnnotationTool>("select");
   const [pendingEdgeStart, setPendingEdgeStart] = useState<string | null>(null);
@@ -83,7 +84,17 @@ export default function Home() {
   const handleImageUpload = useCallback((file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
-      setImageSrc(typeof reader.result === "string" ? reader.result : null);
+      const result = typeof reader.result === "string" ? reader.result : null;
+      setImageSrc(result);
+
+      // Load image to get dimensions
+      if (result) {
+        const img = new Image();
+        img.onload = () => {
+          setImageSize([img.width, img.height]);
+        };
+        img.src = result;
+      }
     };
     reader.readAsDataURL(file);
   }, []);
@@ -263,10 +274,11 @@ export default function Home() {
     // Remove id from features to match Feature type (not AnnotatedFeature)
     const featuresWithoutId = features.map(({ id, ...feature }) => feature);
 
-    const area = {
+    const area: Area = {
       id: "",
       name: "",
       descriptions: [],
+      size: imageSize,
       topology,
       features: featuresWithoutId,
     };
@@ -283,7 +295,7 @@ export default function Home() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  }, [nodes, edges, features]);
+  }, [nodes, edges, features, imageSize]);
 
   const handleImport = useCallback(
     (file: File) => {
@@ -295,10 +307,7 @@ export default function Home() {
             throw new Error("Invalid file content");
           }
 
-          const area = JSON.parse(content) as {
-            topology: Array<Vertex | Edge>;
-            features: Feature[];
-          };
+          const area = JSON.parse(content) as Area;
 
           // Validate the Area structure
           if (!area || typeof area !== "object") {
@@ -309,6 +318,11 @@ export default function Home() {
             throw new Error(
               "Invalid Area structure: missing topology or features",
             );
+          }
+
+          // Set image size from imported area
+          if (area.size && Array.isArray(area.size) && area.size.length === 2) {
+            setImageSize(area.size as [number, number]);
           }
 
           // Separate nodes and edges from topology array
@@ -394,6 +408,7 @@ export default function Home() {
         <div className="flex-1 min-h-0 overflow-y-auto pb-4">
           <AnnotationCanvas
             imageSrc={imageSrc}
+            imageSize={imageSize}
             nodes={nodes}
             edges={edges}
             features={features}

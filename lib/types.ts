@@ -1,9 +1,9 @@
 /**
- * Normalized coordinate pair stored as raw numbers (0–1 range, not percentages).
+ * Coordinate pair stored as integers representing pixel positions.
  *
  * @example
- * const center: Position = [0.5, 0.5]; // Center of the map
- * const topLeft: Position = [0.0, 0.0]; // Top-left corner
+ * const center: Position = [500, 300]; // Center at pixel (500, 300)
+ * const topLeft: Position = [0, 0]; // Top-left corner
  */
 export type Position = [number, number];
 
@@ -126,6 +126,7 @@ export type Feature = Shop | Restaurant | Entrance;
  * @property id - Unique identifier for the area
  * @property name - Display name of the area
  * @property descriptions - Array of descriptive text about the area
+ * @property size - Canvas dimensions as [width, height] in pixels
  * @property topology - Collection of vertices and edges forming the navigable structure
  * @property features - Collection of points of interest within the area
  */
@@ -133,6 +134,7 @@ export interface Area {
   id: string;
   name: string;
   descriptions: string[];
+  size: [number, number];
   topology: Primitive[];
   features: Feature[];
 }

@@ -7,7 +7,7 @@ import type { AnnotatedFeature, AnnotationTool } from "@/lib/annotation";
 import type { ZoomState } from "./zoom-controls";
 
 /**
- * Cursor position expressed as raw normalized numbers (0–1 range, not percentages).
+ * Cursor position expressed as pixel coordinates relative to the image.
  */
 export interface CursorInfo {
   relative: Position;
@@ -16,6 +16,7 @@ export interface CursorInfo {
 
 interface AnnotationCanvasProps {
   imageSrc: string | null;
+  imageSize: [number, number];
   nodes: Vertex[];
   edges: Edge[];
   features: AnnotatedFeature[];
@@ -33,6 +34,7 @@ interface AnnotationCanvasProps {
 export function AnnotationCanvas(props: AnnotationCanvasProps) {
   const {
     imageSrc,
+    imageSize,
     nodes,
     edges,
     features,
@@ -87,34 +89,46 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
   }, []);
 
   const projectPosition = useCallback(
-    (position: Position) => ({
-      x: position[0] * dimensions.width,
-      y: position[1] * dimensions.height,
-    }),
-    [dimensions.height, dimensions.width],
+    (position: Position) => {
+      // Position is stored as pixel coordinates relative to original image dimensions
+      // Scale to container's actual display dimensions for rendering
+      if (!imageSize[0] || !imageSize[1]) {
+        return { x: 0, y: 0 };
+      }
+      return {
+        x: (position[0] / imageSize[0]) * dimensions.width,
+        y: (position[1] / imageSize[1]) * dimensions.height,
+      };
+    },
+    [dimensions.width, dimensions.height, imageSize],
   );
 
   const getRelativeFromEvent = useCallback(
     (event: React.MouseEvent) => {
       const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return null;
+      if (!rect || !imageSize[0] || !imageSize[1]) return null;
 
       // Get raw client coordinates relative to container
       const clientX = event.clientX - rect.left;
       const clientY = event.clientY - rect.top;
 
-      // Account for zoom and pan
-      const x = (clientX - zoom.offsetX) / (rect.width * zoom.scale);
-      const y = (clientY - zoom.offsetY) / (rect.height * zoom.scale);
+      // Account for zoom and pan to get normalized 0-1 position
+      const normalizedX = (clientX - zoom.offsetX) / (rect.width * zoom.scale);
+      const normalizedY = (clientY - zoom.offsetY) / (rect.height * zoom.scale);
 
-      if (Number.isNaN(x) || Number.isNaN(y)) return null;
-      if (x < 0 || x > 1 || y < 0 || y > 1) return null;
+      if (Number.isNaN(normalizedX) || Number.isNaN(normalizedY)) return null;
+      if (normalizedX < 0 || normalizedX > 1 || normalizedY < 0 || normalizedY > 1) return null;
+
+      // Convert to pixel coordinates based on image dimensions
+      const pixelX = Math.round(normalizedX * imageSize[0]);
+      const pixelY = Math.round(normalizedY * imageSize[1]);
+
       return {
-        relative: [x, y] as Position,
-        absolute: [x * rect.width, y * rect.height] as Position,
+        relative: [pixelX, pixelY] as Position,
+        absolute: [pixelX, pixelY] as Position,
       } satisfies CursorInfo;
     },
-    [zoom.offsetX, zoom.offsetY, zoom.scale],
+    [zoom.offsetX, zoom.offsetY, zoom.scale, imageSize],
   );
 
   const findNodeHit = useCallback(
@@ -314,14 +328,17 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
               </svg>
               {nodes.map((node) => {
                 const isActive = pendingEdgeStart === node.id;
+                // Convert pixel position to percentage for CSS
+                const leftPercent = imageSize[0] > 0 ? (node.position[0] / imageSize[0]) * 100 : 0;
+                const topPercent = imageSize[1] > 0 ? (node.position[1] / imageSize[1]) * 100 : 0;
                 return (
                   <button
                     key={node.id}
                     type="button"
                     className={`pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${isActive ? "border-primary bg-primary/80" : "border-background bg-card"}`}
                     style={{
-                      left: `${node.position[0] * 100}%`,
-                      top: `${node.position[1] * 100}%`,
+                      left: `${leftPercent}%`,
+                      top: `${topPercent}%`,
                       width: isActive ? 14 : 12,
                       height: isActive ? 14 : 12,
                     }}
@@ -330,20 +347,25 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                   </button>
                 );
               })}
-              {features.map((feature) => (
-                <div
-                  key={feature.id}
-                  className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border bg-primary/90 px-2 py-1 text-xs font-medium text-primary-foreground shadow"
-                  style={{
-                    left: `${feature.position[0] * 100}%`,
-                    top: `${feature.position[1] * 100}%`,
-                  }}
-                >
-                  {feature.type === "entrance"
-                    ? feature.label || "Entrance"
-                    : feature.name}
-                </div>
-              ))}
+              {features.map((feature) => {
+                // Convert pixel position to percentage for CSS
+                const leftPercent = imageSize[0] > 0 ? (feature.position[0] / imageSize[0]) * 100 : 0;
+                const topPercent = imageSize[1] > 0 ? (feature.position[1] / imageSize[1]) * 100 : 0;
+                return (
+                  <div
+                    key={feature.id}
+                    className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border bg-primary/90 px-2 py-1 text-xs font-medium text-primary-foreground shadow"
+                    style={{
+                      left: `${leftPercent}%`,
+                      top: `${topPercent}%`,
+                    }}
+                  >
+                    {feature.type === "entrance"
+                      ? feature.label || "Entrance"
+                      : feature.name}
+                  </div>
+                );
+              })}
             </>
           ) : null}
         </div>

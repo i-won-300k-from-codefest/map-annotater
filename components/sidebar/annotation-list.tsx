@@ -75,7 +75,7 @@ export function AnnotationList(props: AnnotationListProps) {
         onEdit: (item: Vertex) =>
           setEditing({ type: "node", value: cloneValue(item), originalId: item.id }),
         onDelete: (item: Vertex) => onDeleteNode(item.id),
-        meta: (item: Vertex) => `${item.position[0].toFixed(3)}, ${item.position[1].toFixed(3)}`,
+        meta: (item: Vertex) => `${Math.round(item.position[0])}, ${Math.round(item.position[1])}`,
       },
       {
         label: "Edges",
@@ -211,14 +211,13 @@ export function AnnotationList(props: AnnotationListProps) {
               <div className="grid grid-cols-2 gap-3">
                 {(["x", "y"] as const).map((axis, index) => (
                   <div className="space-y-1" key={axis}>
-                    <Label htmlFor={`node-${axis}`}>{axis.toUpperCase()}</Label>
+                    <Label htmlFor={`node-${axis}`}>{axis.toUpperCase()} (pixels)</Label>
                     <Input
                       id={`node-${axis}`}
                       type="number"
                       min={0}
-                      max={1}
-                      step={0.01}
-                      value={editing.value.position[index].toString()}
+                      step={1}
+                      value={Math.round(editing.value.position[index]).toString()}
                       onChange={(event) =>
                         setEditing((current) =>
                           current && current.type === "node"
@@ -313,13 +312,12 @@ export function AnnotationList(props: AnnotationListProps) {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label>X</Label>
+                  <Label>X (pixels)</Label>
                   <Input
                     type="number"
                     min={0}
-                    max={1}
-                    step={0.01}
-                    value={editing.value.position[0].toString()}
+                    step={1}
+                    value={Math.round(editing.value.position[0]).toString()}
                     onChange={(event) =>
                       setEditing((current) =>
                         current && current.type === "feature"
@@ -339,13 +337,12 @@ export function AnnotationList(props: AnnotationListProps) {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label>Y</Label>
+                  <Label>Y (pixels)</Label>
                   <Input
                     type="number"
                     min={0}
-                    max={1}
-                    step={0.01}
-                    value={editing.value.position[1].toString()}
+                    step={1}
+                    value={Math.round(editing.value.position[1]).toString()}
                     onChange={(event) =>
                       setEditing((current) =>
                         current && current.type === "feature"
