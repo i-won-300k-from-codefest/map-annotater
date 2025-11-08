@@ -85,7 +85,14 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
   // Keyboard event listeners for space key (for panning)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === "Space" && !e.repeat) {
+      // Don't intercept space if user is typing in an input or textarea
+      const target = e.target as HTMLElement;
+      const isTyping =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable;
+
+      if (e.code === "Space" && !e.repeat && !isTyping) {
         setSpacePressed(true);
         e.preventDefault();
       }
