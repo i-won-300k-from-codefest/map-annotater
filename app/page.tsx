@@ -15,29 +15,14 @@ import { useAnnotationHistory } from "@/hooks/use-annotation-history";
 import type { Edge, Feature, Position, Vertex } from "@/lib/types";
 import {
   createEmptyDraft,
+  featureToolFromType,
   isFeatureTool,
   type AnnotatedFeature,
   type AnnotationMode,
   type AnnotationTool,
   type FeatureDraft,
 } from "@/lib/annotation";
-
-const generateId = (prefix: string) => {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
-    return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
-  }
-  return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
-};
-
-const featureToolFromType = (type: FeatureDraft["type"]): AnnotationTool =>
-  type === "entrance"
-    ? "feature-entrance"
-    : type === "shop"
-      ? "feature-shop"
-      : "feature-restaurant";
+import { generateId } from "@/lib/utils";
 
 export default function Home() {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
