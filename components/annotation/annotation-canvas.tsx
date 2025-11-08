@@ -11,7 +11,7 @@ import {
 } from "react";
 import type { Edge, Position, Vertex } from "@/lib/types";
 import type { AnnotatedFeature, AnnotationTool } from "@/lib/annotation";
-import { findClosedLoops } from "@/lib/graph";
+import { findClosedLoops, type ClosedLoop } from "@/lib/graph";
 import type { ZoomState } from "./zoom-controls";
 
 /**
@@ -79,6 +79,18 @@ const pointToSegmentDistance = (
   return Math.hypot(point.x - closestX, point.y - closestY);
 };
 
+const pathFromRings = (rings: { x: number; y: number }[][]) => {
+  return rings
+    .map((ring) => {
+      if (ring.length < 3) return "";
+      const [first, ...rest] = ring;
+      const commands = rest.map((point) => `L ${point.x} ${point.y}`).join(" ");
+      return `M ${first.x} ${first.y} ${commands} Z`;
+    })
+    .filter(Boolean)
+    .join(" ");
+};
+
 export function AnnotationCanvas(props: AnnotationCanvasProps) {
   const {
     imageSrc,
@@ -111,11 +123,7 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
   const [selectedElement, setSelectedElement] = useState<SelectedElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartPos, setDragStartPos] = useState<Position | null>(null);
-  const nodesById = useMemo(
-    () => new Map(nodes.map((node) => [node.id, node])),
-    [nodes],
-  );
-  const closedLoops = useMemo(() => findClosedLoops(nodes, edges), [nodes, edges]);
+  const closedAreas = useMemo<ClosedLoop[]>(() => findClosedLoops(nodes, edges), [nodes, edges]);
 
   const deleteSelectedElement = useCallback(() => {
     if (!selectedElement) return;
@@ -522,32 +530,27 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
 
   const renderAreas = useMemo(() => {
     if (!dimensions.width || !dimensions.height) return null;
-    if (!closedLoops.length) return null;
+    if (!closedAreas.length) return null;
 
-    return closedLoops
-      .map((loop) => {
-        const projected = loop
-          .map((nodeId) => nodesById.get(nodeId))
-          .filter((node): node is Vertex => Boolean(node))
-          .map((node) => projectPosition(node.position));
-
-        if (projected.length < 3) return null;
-
-        const area = Math.abs(
-          projected.reduce((sum, point, index) => {
-            const next = projected[(index + 1) % projected.length];
-            return sum + point.x * next.y - next.x * point.y;
-          }, 0) / 2,
+    return closedAreas
+      .map((area) => {
+        const boundaryPoints = area.boundary.points.map((position) =>
+          projectPosition(position),
         );
+        if (boundaryPoints.length < 3) return null;
 
-        if (area < 50) return null;
+        const holeRings = area.holes
+          .map((hole) => hole.points.map((position) => projectPosition(position)))
+          .filter((ring) => ring.length >= 3);
 
-        const pointsAttr = projected.map(({ x, y }) => `${x},${y}`).join(" ");
+        const pathData = pathFromRings([boundaryPoints, ...holeRings]);
+        if (!pathData) return null;
 
         return (
-          <polygon
-            key={`area-${loop.join("-")}`}
-            points={pointsAttr}
+          <path
+            key={`area-${area.boundary.nodeIds.join("-")}`}
+            d={pathData}
+            fillRule="evenodd"
             fill="var(--primary)"
             fillOpacity={0.15}
             stroke="var(--primary)"
@@ -557,7 +560,7 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
         );
       })
       .filter((polygon): polygon is ReactElement => Boolean(polygon));
-  }, [closedLoops, dimensions.height, dimensions.width, nodesById, projectPosition]);
+  }, [closedAreas, dimensions.height, dimensions.width, projectPosition]);
 
   const cursorStyle = isDragging
     ? "grabbing"
