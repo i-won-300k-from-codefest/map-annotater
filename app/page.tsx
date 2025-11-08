@@ -3,10 +3,16 @@
 import { useCallback, useState } from "react";
 import { AnnotationSidebar } from "@/components/sidebar/annotation-sidebar";
 import { AnnotationToolbar } from "@/components/annotation/annotation-toolbar";
-import { AnnotationCanvas, type CursorInfo } from "@/components/annotation/annotation-canvas";
-import { ZoomControls, type ZoomState } from "@/components/annotation/zoom-controls";
+import {
+  AnnotationCanvas,
+  type CursorInfo,
+} from "@/components/annotation/annotation-canvas";
+import {
+  ZoomControls,
+  type ZoomState,
+} from "@/components/annotation/zoom-controls";
 import { useAnnotationHistory } from "@/hooks/use-annotation-history";
-import type { Edge, Position, Vertex } from "@/lib/types";
+import type { Edge, Feature, Position, Vertex } from "@/lib/types";
 import {
   createEmptyDraft,
   isFeatureTool,
@@ -17,25 +23,39 @@ import {
 } from "@/lib/annotation";
 
 const generateId = (prefix: string) => {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
   }
   return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
 };
 
 const featureToolFromType = (type: FeatureDraft["type"]): AnnotationTool =>
-  type === "entrance" ? "feature-entrance" : type === "shop" ? "feature-shop" : "feature-restaurant";
+  type === "entrance"
+    ? "feature-entrance"
+    : type === "shop"
+      ? "feature-shop"
+      : "feature-restaurant";
 
 export default function Home() {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [mode, setMode] = useState<AnnotationMode>("topology");
   const [activeTool, setActiveTool] = useState<AnnotationTool>("select");
   const [pendingEdgeStart, setPendingEdgeStart] = useState<string | null>(null);
-  const [featureDraft, setFeatureDraft] = useState<FeatureDraft>(createEmptyDraft("shop"));
+  const [featureDraft, setFeatureDraft] = useState<FeatureDraft>(
+    createEmptyDraft("shop"),
+  );
   const [cursor, setCursor] = useState<CursorInfo | null>(null);
-  const [zoom, setZoom] = useState<ZoomState>({ scale: 1, offsetX: 0, offsetY: 0 });
+  const [zoom, setZoom] = useState<ZoomState>({
+    scale: 1,
+    offsetX: 0,
+    offsetY: 0,
+  });
 
-  const { state, commit, undo, redo, canRedo, canUndo } = useAnnotationHistory();
+  const { state, commit, undo, redo, canRedo, canUndo } =
+    useAnnotationHistory();
 
   const nodes = state.nodes;
   const edges = state.edges;
@@ -166,7 +186,9 @@ export default function Home() {
       commit((prev) => ({
         ...prev,
         nodes: prev.nodes.filter((node) => node.id !== id),
-        edges: prev.edges.filter((edge) => edge.source !== id && edge.target !== id),
+        edges: prev.edges.filter(
+          (edge) => edge.source !== id && edge.target !== id,
+        ),
       }));
       if (pendingEdgeStart === id) {
         setPendingEdgeStart(null);
@@ -288,7 +310,10 @@ export default function Home() {
             throw new Error("Invalid file content");
           }
 
-          const area = JSON.parse(content);
+          const area = JSON.parse(content) as {
+            topology: Array<Vertex | Edge>;
+            features: Feature[];
+          };
 
           // Validate the Area structure
           if (!area || typeof area !== "object") {
@@ -296,18 +321,26 @@ export default function Home() {
           }
 
           if (!Array.isArray(area.topology) || !Array.isArray(area.features)) {
-            throw new Error("Invalid Area structure: missing topology or features");
+            throw new Error(
+              "Invalid Area structure: missing topology or features",
+            );
           }
 
           // Separate nodes and edges from topology array
-          const importedNodes = area.topology.filter((p: any) => p.type === "node");
-          const importedEdges = area.topology.filter((p: any) => p.type === "edge");
+          const importedNodes = area.topology.filter(
+            (p): p is Vertex => p.type === "node",
+          );
+          const importedEdges = area.topology.filter(
+            (p): p is Edge => p.type === "edge",
+          );
 
           // Add IDs to features for AnnotatedFeature type
-          const importedFeatures = area.features.map((feature: any) => ({
-            ...feature,
-            id: generateId("f"),
-          }));
+          const importedFeatures: AnnotatedFeature[] = area.features.map(
+            (feature) => ({
+              ...feature,
+              id: generateId("f"),
+            }),
+          );
 
           // Replace current state with imported data
           commit(() => ({
@@ -317,7 +350,9 @@ export default function Home() {
           }));
         } catch (error) {
           console.error("Failed to import data:", error);
-          alert("Failed to import data. Please ensure the file is a valid Area JSON file.");
+          alert(
+            "Failed to import data. Please ensure the file is a valid Area JSON file.",
+          );
         }
       };
       reader.readAsText(file);
