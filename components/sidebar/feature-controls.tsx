@@ -93,7 +93,11 @@ export function FeatureControls({
               <Input
                 id="feature-label"
                 value={draft.label}
-                placeholder={draft.type === "entrance" ? "East stairwell" : "Men's restroom"}
+                placeholder={
+                  draft.type === "entrance"
+                    ? "East stairwell"
+                    : "Men's restroom"
+                }
                 onChange={(event) =>
                   onDraftChange({
                     ...draft,

@@ -275,7 +275,14 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
         event.preventDefault();
       }
     },
-    [spacePressed, activeTool, zoom.offsetX, zoom.offsetY, getRelativeFromEvent, findElementHit],
+    [
+      spacePressed,
+      activeTool,
+      zoom.offsetX,
+      zoom.offsetY,
+      getRelativeFromEvent,
+      findElementHit,
+    ],
   );
 
   const handleMouseMove = useCallback(
@@ -457,7 +464,8 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                   selectedElement?.type === "node" &&
                   selectedElement.id === node.id;
                 const isHovered = hoveredNode === node.id;
-                const shouldEnlargeOnHover = isHovered && activeTool === "add-edge";
+                const shouldEnlargeOnHover =
+                  isHovered && activeTool === "add-edge";
                 // Convert pixel position to percentage for CSS
                 const leftPercent =
                   imageSize[0] > 0
@@ -469,7 +477,13 @@ export function AnnotationCanvas(props: AnnotationCanvasProps) {
                     : 0;
 
                 // Size logic: smaller by default, larger when selected/active or when hovered in edge mode
-                const nodeSize = isSelected ? 16 : isActive ? 14 : shouldEnlargeOnHover ? 12 : 8;
+                const nodeSize = isSelected
+                  ? 16
+                  : isActive
+                    ? 14
+                    : shouldEnlargeOnHover
+                      ? 12
+                      : 8;
 
                 return (
                   <button

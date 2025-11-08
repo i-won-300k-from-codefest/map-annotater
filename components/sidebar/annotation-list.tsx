@@ -133,7 +133,9 @@ export function AnnotationList(props: AnnotationListProps) {
           }),
         onDelete: (item: AnnotatedFeature) => onDeleteFeature(item.id),
         meta: (item: AnnotatedFeature) =>
-          item.type === "entrance" || item.type === "restroom" ? item.label : item.name,
+          item.type === "entrance" || item.type === "restroom"
+            ? item.label
+            : item.name,
       },
     ],
     [edges, features, nodes, onDeleteEdge, onDeleteFeature, onDeleteNode],
@@ -454,7 +456,8 @@ export function AnnotationList(props: AnnotationListProps) {
                   />
                 </div>
               </div>
-              {editing.value.type === "entrance" || editing.value.type === "restroom" ? (
+              {editing.value.type === "entrance" ||
+              editing.value.type === "restroom" ? (
                 <div className="space-y-3">
                   <div className="space-y-1">
                     <Label>Label</Label>
@@ -464,7 +467,8 @@ export function AnnotationList(props: AnnotationListProps) {
                         setEditing((current) =>
                           current &&
                           current.type === "feature" &&
-                          (current.value.type === "entrance" || current.value.type === "restroom")
+                          (current.value.type === "entrance" ||
+                            current.value.type === "restroom")
                             ? {
                                 ...current,
                                 value: {

@@ -147,7 +147,10 @@ export default function Home() {
 
   const handlePlaceFeature = useCallback(
     (position: Position) => {
-      if (featureDraft.type === "entrance" || featureDraft.type === "restroom") {
+      if (
+        featureDraft.type === "entrance" ||
+        featureDraft.type === "restroom"
+      ) {
         if (!featureDraft.label.trim()) return;
       } else if (!featureDraft.name.trim()) {
         return;
